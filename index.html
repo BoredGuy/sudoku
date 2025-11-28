@@ -81,6 +81,7 @@ button:focus{outline:3px solid #000; outline-offset:2px}
   display:inline-block;
   font-weight:700;
 }
+
 .board-wrap{
   width:100%;
   max-width:560px;
@@ -113,6 +114,7 @@ td.correct{background:var(--green)}
 td.incorrect{background:var(--red)}
 td:nth-child(3n){border-right:2px solid var(--accent)}
 tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
+
 .candidate{
   position:absolute;
   inset:4px;
@@ -123,6 +125,7 @@ tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
   color:var(--muted);
 }
 .candidate div{display:flex;align-items:center;justify-content:center}
+
 #footer{
   margin-top:14px;
   display:flex;
@@ -138,6 +141,7 @@ tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
   padding:6px 10px;
   font-weight:700;
 }
+
 @media (max-width:640px){
   :root{--cell-size:44px}
   table{max-width:calc(var(--cell-size)*9)}
@@ -276,22 +280,20 @@ document.addEventListener('keydown', (e) => {
   }
   if(key >= '1' && key <= '9'){
     const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td) return;
-    if(td.classList.contains('fixed')) return;
+    if(!td || td.classList.contains('fixed')) return;
     if(candidateMode){
       toggleCandidate(td, key);
     } else {
       td.textContent = key;
       td.classList.remove('correct','incorrect');
       td.querySelector('.candidate')?.remove();
+      if(autoCandidateMode) updateAutoCandidates();
     }
-    if(autoCandidateMode) updateAutoCandidates();
     return;
   }
   if(key === 'Backspace' || key === 'Delete' || key === '0'){
     const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td) return;
-    if(td.classList.contains('fixed')) return;
+    if(!td || td.classList.contains('fixed')) return;
     td.textContent = '';
     td.classList.remove('correct','incorrect');
     td.querySelector('.candidate')?.remove();
@@ -334,15 +336,14 @@ function toggleCandidate(td, num){
 }
 
 function updateAutoCandidates(){
+  candidates = {};
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
       const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
       if(!td) continue;
+      if(td.classList.contains('fixed')) continue;
+      if(td.textContent && td.textContent.trim() !== '') continue;
       const key = `${r}-${c}`;
-      if(td.classList.contains('fixed') || (td.textContent && td.textContent.trim() !== '')) {
-        delete candidates[key];
-        continue;
-      }
       candidates[key] = new Set();
       for(let n=1;n<=9;n++){
         if(isValidMove(r,c,n)) candidates[key].add(String(n));
