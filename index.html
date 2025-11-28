@@ -1,517 +1,399 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Sudoku — Swiss / Bauhaus Inspired</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sudoku Game</title>
 <style>
-/* Minimal flat Swiss/Bauhaus inspired UI */
-:root{
-  --bg:#f7f7f7;
-  --fg:#111;
-  --muted:#555;
-  --accent:#111;
-  --blue:#d9f0f0;
-  --yellow:#fce5b3;
-  --green:#c8e6c9;
-  --red:#ffcdd2;
-  --cell-size:56px;
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  margin: 0; padding: 20px; background-color: #f7f7f7; color: #111;
 }
-*{box-sizing:border-box}
-body{
-  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
-  margin:0;
-  background:var(--bg);
-  color:var(--fg);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:28px;
+h1 { font-weight: 700; font-size: 2rem; margin-bottom: 20px; letter-spacing: 1px; }
+button {
+  background-color: #111; color: #fff; border: none;
+  padding: 10px 18px; font-size: 16px; margin: 6px; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
-h1{
-  font-weight:700;
-  letter-spacing:1px;
-  margin:0 0 14px 0;
-  font-size:28px;
+button:hover { background-color: #333; }
+select {
+  padding: 8px 12px; font-size: 16px; border: 2px solid #111;
+  background-color: #fff; color: #111; margin-left: 5px;
 }
-#topbar{
-  width:100%;
-  max-width:820px;
-  display:flex;
-  gap:12px;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:12px;
+#difficultyContainer { display: flex; align-items: center; margin-bottom: 10px; }
+#timer, #difficultyDisplay { font-weight: 600; font-size: 1rem; margin-top: 10px; display:none; }
+table { border-collapse: collapse; margin-top: 20px; display:none; }
+td {
+  width: 50px; height: 50px; text-align: center; vertical-align: middle;
+  border: 1px solid #111; font-size: 20px; cursor: pointer; position: relative;
 }
-.controls-left{
-  display:flex;
-  gap:10px;
-  align-items:center;
+td.selected { background-color: #d9f0f0; }
+td.clue-selected { background-color: #fce5b3; }
+td.fixed { font-weight: 700; color: #000; }
+.candidate {
+  font-size: 10px; position: absolute; top: 2px; left: 2px;
+  display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr);
+  width: 100%; height: 100%; color: #555;
 }
-label{font-weight:600}
-select{
-  padding:8px 10px;
-  font-size:14px;
-  border:2px solid var(--accent);
-  background:#fff;
-  color:var(--fg);
-}
-button{
-  background:var(--accent);
-  color:#fff;
-  border:0;
-  padding:8px 14px;
-  font-size:13px;
-  cursor:pointer;
-  text-transform:uppercase;
-  letter-spacing:0.6px;
-}
-button[hidden]{display:none}
-button:focus{outline:3px solid #000; outline-offset:2px}
-#info{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  font-weight:600;
-  font-size:14px;
-}
-.badge{
-  padding:6px 10px;
-  border:2px solid var(--accent);
-  background:#fff;
-  display:inline-block;
-  font-weight:700;
-}
-
-/* Grid area */
-.board-wrap{
-  width:100%;
-  max-width:560px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-table{
-  border-collapse:collapse;
-  margin-top:18px;
-  background:#fff;
-}
-td{
-  width:var(--cell-size);
-  height:var(--cell-size);
-  border:1px solid var(--accent);
-  text-align:center;
-  vertical-align:middle;
-  font-size:20px;
-  position:relative;
-  cursor:pointer;
-  user-select:none;
-  padding:0;
-  font-weight:500;
-}
-td.fixed{font-weight:700}
-td.selected{background:var(--blue)}
-td.clue-selected{background:var(--yellow)}
-td.correct{background:var(--green)}
-td.incorrect{background:var(--red)}
-/* thicker lines every 3 cells */
-td:nth-child(3n){border-right:2px solid var(--accent)}
-tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
-
-/* candidate tiny grid */
-.candidate{
-  position:absolute;
-  inset:4px;
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  grid-template-rows:repeat(3,1fr);
-  font-size:11px;
-  color:var(--muted);
-}
-.candidate div{display:flex;align-items:center;justify-content:center}
-
-/* footer small controls */
-#footer{
-  margin-top:14px;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  justify-content:center;
-  flex-wrap:wrap;
-  max-width:820px;
-}
-.small{
-  background:#fff;
-  border:2px solid var(--accent);
-  padding:6px 10px;
-  font-weight:700;
-}
-
-/* responsive */
-@media (max-width:640px){
-  :root{--cell-size:44px}
-  table{max-width:calc(var(--cell-size)*9)}
-}
+.candidate div { text-align: center; }
+td:nth-child(3n) { border-right: 2px solid #111; }
+tr:nth-child(3n) td { border-bottom: 2px solid #111; }
+#controls { display: none; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
 </style>
 </head>
 <body>
 
 <h1>Sudoku</h1>
 
-<div id="topbar">
-  <div class="controls-left">
-    <div id="difficultyContainer">
-      <label>Difficulty:
-        <select id="difficulty">
-          <option value="easy">Easy</option>
-          <option value="medium" selected>Medium</option>
-          <option value="hard">Hard</option>
-        </select>
-      </label>
-    </div>
-    <button id="startBtn">Start New Game</button>
-    <button id="candidateToggle" hidden>Candidate Mode: OFF</button>
-    <button id="autoCandidateBtn" hidden>Auto Candidate Mode: OFF</button>
-  </div>
-
-  <div id="info">
-    <div id="timer" class="badge" hidden>Time: 00:00</div>
-    <div id="difficultyDisplay" class="small" hidden>Difficulty: Medium</div>
-  </div>
+<div id="difficultyContainer">
+  <label>Difficulty:
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+  </label>
 </div>
 
-<div class="board-wrap">
-  <table id="sudoku-grid" hidden></table>
-  <div id="controls" style="display:flex;gap:8px;margin-top:12px">
-    <button id="checkBtn" hidden>Check</button>
-    <button id="hintBtn" hidden>Hint</button>
-  </div>
+<button id="startBtn" onclick="startGame()">Start New Game</button>
+
+<div id="timer">Time: 00:00</div>
+<div id="difficultyDisplay"></div>
+
+<div id="controls">
+  <button id="candidateToggle" onclick="toggleCandidateMode()">Candidate Mode: OFF</button>
+  <button id="autoCandidateBtn" onclick="toggleAutoCandidateMode()">Auto Candidate Mode: OFF</button>
+  <button id="checkBtn" onclick="checkSolution()">Check</button>
+  <button id="hintBtn" onclick="getHint()">Hint</button>
 </div>
+
+<table id="sudoku-grid"></table>
 
 <script>
-/* FULL GAME LOGIC - dynamic auto-candidates, manual candidates, keyboard navigation, UI behavior */
-/* State */
 let puzzle = [];
 let solution = [];
 let selectedRow = 0;
 let selectedCol = 0;
-let timerInterval = null;
+let timerInterval;
 let secondsElapsed = 0;
 let candidateMode = false;
 let autoCandidateMode = false;
 let candidates = {};
 let currentDifficulty = '';
 
-/* Helpers: timer */
-function startTimer(){
+/* -------------------------------- TIMER -------------------------------- */
+
+function startTimer() {
   clearInterval(timerInterval);
   secondsElapsed = 0;
-  document.getElementById('timer').textContent = "Time: 00:00";
-  timerInterval = setInterval(()=> {
+  timerInterval = setInterval(() => {
     secondsElapsed++;
-    const m = String(Math.floor(secondsElapsed/60)).padStart(2,'0');
-    const s = String(secondsElapsed%60).padStart(2,'0');
-    document.getElementById('timer').textContent = `Time: ${m}:${s}`;
-  },1000);
+    const mins = String(Math.floor(secondsElapsed/60)).padStart(2,'0');
+    const secs = String(secondsElapsed%60).padStart(2,'0');
+    document.getElementById("timer").textContent = "Time: " + mins + ":" + secs;
+  }, 1000);
 }
 
-/* Start game: hide initial UI, show game UI */
-document.getElementById('startBtn').addEventListener('click', startGame);
+/* -------------------------------- START GAME -------------------------------- */
 
-function startGame(){
-  // hide selector and start button
-  document.getElementById('startBtn').hidden = true;
-  document.getElementById('difficultyContainer').hidden = true;
+function startGame() {
+  document.getElementById("startBtn").style.display = 'none';
+  document.getElementById("difficultyContainer").style.display = 'none';
+  document.getElementById("timer").style.display = 'block';
+  document.getElementById("difficultyDisplay").style.display = 'block';
+  document.getElementById("controls").style.display = 'flex';
+  document.getElementById("sudoku-grid").style.display = 'table';
 
-  // show controls
-  document.getElementById('timer').hidden = false;
-  document.getElementById('difficultyDisplay').hidden = false;
-  document.getElementById('sudoku-grid').hidden = false;
-  document.getElementById('candidateToggle').hidden = false;
-  document.getElementById('autoCandidateBtn').hidden = false;
-  document.getElementById('checkBtn').hidden = false;
-  document.getElementById('hintBtn').hidden = false;
+  currentDifficulty = document.getElementById("difficulty").value;
+  document.getElementById("difficultyDisplay").textContent =
+    "Difficulty: " + currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
 
-  currentDifficulty = document.getElementById('difficulty').value;
-  document.getElementById('difficultyDisplay').textContent =
-    "Difficulty: " + (currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1));
+  const emptyCells = currentDifficulty === "easy" ? 30 : currentDifficulty === "medium" ? 40 : 50;
 
-  const emptyCells = currentDifficulty === 'easy' ? 30 : currentDifficulty === 'medium' ? 40 : 50;
   const board = generateSudoku();
   solution = board.map(r => r.slice());
   puzzle = removeCells(board, emptyCells);
-
   candidates = {};
+
   renderGrid();
   startTimer();
   selectCell(0,0);
-  if(autoCandidateMode) updateAutoCandidates();
+
+  if (autoCandidateMode) updateAutoCandidates();
 }
 
-/* Render grid */
-function renderGrid(){
-  const grid = document.getElementById('sudoku-grid');
-  grid.innerHTML = '';
-  for(let r=0;r<9;r++){
-    const tr = document.createElement('tr');
-    for(let c=0;c<9;c++){
-      const td = document.createElement('td');
-      td.dataset.row = r; td.dataset.col = c;
-      if(puzzle[r][c] !== null){
+/* -------------------------------- RENDER GRID -------------------------------- */
+
+function renderGrid() {
+  const grid = document.getElementById("sudoku-grid");
+  grid.innerHTML = "";
+
+  for (let r = 0; r < 9; r++) {
+    const tr = document.createElement("tr");
+    for (let c = 0; c < 9; c++) {
+      const td = document.createElement("td");
+      td.dataset.row = r;
+      td.dataset.col = c;
+
+      if (puzzle[r][c] !== null) {
         td.textContent = puzzle[r][c];
-        td.classList.add('fixed');
+        td.classList.add("fixed");
       }
-      td.addEventListener('click', ()=> selectCell(r,c));
+
+      td.onclick = () => selectCell(r, c);
       tr.appendChild(td);
     }
     grid.appendChild(tr);
   }
+
   updateCandidatesDisplay();
 }
 
-/* Selection */
-function selectCell(r,c){
-  const prev = document.querySelector('td.selected, td.clue-selected');
-  if(prev) prev.classList.remove('selected','clue-selected');
+/* -------------------------------- SELECT CELL -------------------------------- */
+
+function selectCell(r,c) {
+  const prev = document.querySelector("td.selected,td.clue-selected");
+  if (prev) prev.classList.remove("selected","clue-selected");
+
   const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
-  if(!td) return;
-  if(td.classList.contains('fixed')) td.classList.add('clue-selected');
-  else td.classList.add('selected');
-  selectedRow = r; selectedCol = c;
+
+  td.classList.contains("fixed")
+    ? td.classList.add("clue-selected")
+    : td.classList.add("selected");
+
+  selectedRow = r; 
+  selectedCol = c;
 }
 
-/* Keyboard handling */
-document.addEventListener('keydown', (e) => {
-  const key = e.key;
-  // space toggles candidate mode
-  if(key === ' '){
+/* -------------------------------- KEYBOARD INPUT -------------------------------- */
+
+document.addEventListener("keydown",(e)=>{
+  const k = e.key;
+
+  if(k===" "){
     e.preventDefault();
     toggleCandidateMode();
-    return;
   }
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){
+  else if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(k)){
     e.preventDefault();
-    moveSelection(key);
-    return;
+    moveSelection(k);
   }
-  if(key >= '1' && key <= '9'){
-    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td) return;
-    if(td.classList.contains('fixed')) return;
-    if(candidateMode){
-      toggleCandidate(td, key);
-    } else {
-      td.textContent = key;
-      td.classList.remove('correct','incorrect');
-      td.querySelector('.candidate')?.remove();
-    }
-    if(autoCandidateMode) updateAutoCandidates();
-    return;
+  else if(k>="1" && k<="9"){
+    placeNumber(k);
   }
-  if(key === 'Backspace' || key === 'Delete' || key === '0'){
-    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td) return;
-    if(td.classList.contains('fixed')) return;
-    td.textContent = '';
-    td.classList.remove('correct','incorrect');
-    td.querySelector('.candidate')?.remove();
-    delete candidates[`${selectedRow}-${selectedCol}`];
-    if(autoCandidateMode) updateAutoCandidates();
-    return;
+  else if(["Backspace","Delete","0"].includes(k)){
+    clearNumber();
   }
 });
 
-/* Move selection with arrows */
-function moveSelection(direction){
-  let r = selectedRow, c = selectedCol;
-  if(direction === 'ArrowUp') r = (r + 8) % 9;
-  if(direction === 'ArrowDown') r = (r + 1) % 9;
-  if(direction === 'ArrowLeft') c = (c + 8) % 9;
-  if(direction === 'ArrowRight') c = (c + 1) % 9;
+function placeNumber(num){
+  const td=document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+  if(td.classList.contains("fixed")) return;
+
+  if(candidateMode){
+    toggleCandidate(td,num);
+  } else {
+    td.textContent=num;
+    td.querySelector(".candidate")?.remove();
+  }
+
+  if(autoCandidateMode) updateAutoCandidates();
+}
+
+function clearNumber(){
+  const td=document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+  if(td.classList.contains("fixed")) return;
+
+  td.textContent="";
+  td.querySelector(".candidate")?.remove();
+  delete candidates[`${selectedRow}-${selectedCol}`];
+
+  if(autoCandidateMode) updateAutoCandidates();
+}
+
+/* -------------------------------- MOVEMENT -------------------------------- */
+
+function moveSelection(dir){
+  let r=selectedRow, c=selectedCol;
+  if(dir==="ArrowUp") r=(r+8)%9;
+  if(dir==="ArrowDown") r=(r+1)%9;
+  if(dir==="ArrowLeft") c=(c+8)%9;
+  if(dir==="ArrowRight") c=(c+1)%9;
   selectCell(r,c);
 }
 
-/* Candidate mode toggle (manual) */
-document.getElementById('candidateToggle').addEventListener('click', toggleCandidateMode);
+/* -------------------------------- CANDIDATE MODE -------------------------------- */
+
 function toggleCandidateMode(){
-  candidateMode = !candidateMode;
-  document.getElementById('candidateToggle').textContent = `Candidate Mode: ${candidateMode ? 'ON' : 'OFF'}`;
+  candidateMode=!candidateMode;
+  document.getElementById("candidateToggle").textContent =
+    "Candidate Mode: " + (candidateMode ? "ON" : "OFF");
 }
 
-/* Auto candidate mode toggle button */
-document.getElementById('autoCandidateBtn').addEventListener('click', toggleAutoCandidateMode);
 function toggleAutoCandidateMode(){
-  autoCandidateMode = !autoCandidateMode;
-  document.getElementById('autoCandidateBtn').textContent = `Auto Candidate Mode: ${autoCandidateMode ? 'ON' : 'OFF'}`;
+  autoCandidateMode=!autoCandidateMode;
+  document.getElementById("autoCandidateBtn").textContent =
+    "Auto Candidate Mode: " + (autoCandidateMode ? "ON" : "OFF");
+
   if(autoCandidateMode) updateAutoCandidates();
-  else { candidates = {}; updateCandidatesDisplay(); }
+  else { candidates={}; updateCandidatesDisplay(); }
 }
 
-/* Manual candidate: toggle a small candidate number in cell */
-function toggleCandidate(td, num){
-  const key = `${selectedRow}-${selectedCol}`;
-  if(!candidates[key]) candidates[key] = new Set();
-  if(candidates[key].has(num)) candidates[key].delete(num);
-  else candidates[key].add(num);
-  td.textContent = '';
+function toggleCandidate(td,num){
+  const key=`${selectedRow}-${selectedCol}`;
+  if(!candidates[key]) candidates[key]=new Set();
+  candidates[key].has(num) ? candidates[key].delete(num) : candidates[key].add(num);
+  td.querySelector(".candidate")?.remove();
   updateCandidatesDisplay();
 }
 
-/* Update auto candidates based on current board */
+/* -------------------------------- AUTO CANDIDATES -------------------------------- */
+
 function updateAutoCandidates(){
-  candidates = {};
+  candidates={};
+
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
-      const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
-      if(!td) continue;
-      if(td.classList.contains('fixed')) continue;
-      if(td.textContent && td.textContent.trim() !== '') continue;
-      const key = `${r}-${c}`;
-      candidates[key] = new Set();
-      for(let n=1;n<=9;n++){
-        if(isValidMove(r,c,n)) candidates[key].add(String(n));
+      const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+
+      if(!td.classList.contains("fixed") && td.textContent===""){
+        const key=`${r}-${c}`;
+        candidates[key]=new Set();
+
+        for(let n=1;n<=9;n++){
+          if(isValidMove(r,c,n)) candidates[key].add(n.toString());
+        }
       }
     }
   }
+
   updateCandidatesDisplay();
 }
 
-/* Check whether placing num at row,col conflicts with current numbers */
 function isValidMove(row,col,num){
-  num = String(num);
   for(let x=0;x<9;x++){
-    const rv = document.querySelector(`td[data-row="${row}"][data-col="${x}"]`)?.textContent;
-    const cv = document.querySelector(`td[data-row="${x}"][data-col="${col}"]`)?.textContent;
-    if(rv === num) return false;
-    if(cv === num) return false;
+    if(document.querySelector(`td[data-row="${row}"][data-col="${x}"]`).textContent==num) return false;
+    if(document.querySelector(`td[data-row="${x}"][data-col="${col}"]`).textContent==num) return false;
   }
-  const sr = row - row%3, sc = col - col%3;
-  for(let i=0;i<3;i++) for(let j=0;j<3;j++){
-    const bv = document.querySelector(`td[data-row="${sr+i}"][data-col="${sc+j}"]`)?.textContent;
-    if(bv === num) return false;
+
+  const sr=row-row%3, sc=col-col%3;
+  for(let i=0;i<3;i++){
+    for(let j=0;j<3;j++){
+      if(document.querySelector(`td[data-row="${sr+i}"][data-col="${sc+j}"]`).textContent==num) return false;
+    }
   }
   return true;
 }
 
-/* Render candidate numbers inside cells */
 function updateCandidatesDisplay(){
-  // Remove existing candidate elements first (for cells not in candidates)
-  document.querySelectorAll('td .candidate').forEach(n => n.remove());
+  document.querySelectorAll(".candidate").forEach(e => e.remove());
+
   for(const key in candidates){
-    const [r,c] = key.split('-').map(Number);
-    const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
-    if(!td) continue;
-    td.textContent = '';
-    let div = td.querySelector('.candidate');
-    if(!div){
-      div = document.createElement('div');
-      div.className = 'candidate';
-      td.appendChild(div);
-    }
-    div.innerHTML = '';
+    const [r,c]=key.split("-").map(Number);
+    const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+
+    if(!td || td.textContent!=="") continue;
+
+    const div=document.createElement("div");
+    div.classList.add("candidate");
+
     for(let i=1;i<=9;i++){
-      div.innerHTML += `<div>${candidates[key].has(String(i)) ? i : ''}</div>`;
+      div.innerHTML += "<div>"+(candidates[key].has(i.toString())?i:"")+"</div>";
     }
+
+    td.appendChild(div);
   }
 }
 
-/* Check solution button */
-document.getElementById('checkBtn').addEventListener('click', checkSolution);
+/* -------------------------------- CHECK + HINT -------------------------------- */
+
 function checkSolution(){
-  const rows = document.getElementById('sudoku-grid').rows;
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
-      const cell = rows[r].cells[c];
-      const val = parseInt(cell.textContent);
-      if(val === solution[r][c]){
-        cell.classList.remove('incorrect'); cell.classList.add('correct');
-      } else if(!cell.classList.contains('fixed')){
-        cell.classList.remove('correct');
-        if(cell.textContent && cell.textContent.trim() !== '') cell.classList.add('incorrect');
-      }
+      const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+      const val=td.textContent;
+
+      if(val == solution[r][c]) td.style.background="#c8e6c9";
+      else td.style.background="#ffcdd2";
     }
   }
 }
 
-/* Hint button: fills one empty cell with correct value */
-document.getElementById('hintBtn').addEventListener('click', getHint);
 function getHint(){
-  const empties = [];
-  const rows = document.getElementById('sudoku-grid').rows;
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-    const cell = rows[r].cells[c];
-    if(!cell.classList.contains('fixed') && (!cell.textContent || cell.textContent.trim()==='')) empties.push({r,c,cell});
-  }
-  if(empties.length === 0){ alert('No empty cells left!'); return; }
-  const pick = empties[Math.floor(Math.random()*empties.length)];
-  pick.cell.textContent = solution[pick.r][pick.c];
-  pick.cell.querySelector('.candidate')?.remove();
-  delete candidates[`${pick.r}-${pick.c}`];
-  pick.cell.classList.add('correct');
-  if(autoCandidateMode) updateAutoCandidates();
-}
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
 
-/* Sudoku generator (backtracking randomized) */
-function generateSudoku(){
-  const board = Array.from({length:9}, ()=> Array(9).fill(0));
-  function valid(b,r,c,n){
-    for(let x=0;x<9;x++) if(b[r][x]===n || b[x][c]===n) return false;
-    const sr = r - r%3, sc = c - c%3;
-    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(b[sr+i][sc+j]===n) return false;
-    return true;
-  }
-  function solve(b){
-    for(let r=0;r<9;r++){
-      for(let c=0;c<9;c++){
-        if(b[r][c]===0){
-          const nums = [1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
-          for(const n of nums){
-            if(valid(b,r,c,n)){
-              b[r][c]=n;
-              if(solve(b)) return true;
-              b[r][c]=0;
-            }
-          }
-          return false;
-        }
+      if(!td.classList.contains("fixed") && td.textContent===""){
+        td.textContent = solution[r][c];
+        td.querySelector(".candidate")?.remove();
+        return;
       }
     }
-    return true;
   }
-  solve(board);
-  return board;
 }
 
-/* Remove cells to create puzzle */
-function removeCells(board, emptyCount){
-  const p = board.map(r => r.slice());
-  let toRemove = emptyCount;
-  while(toRemove>0){
-    const r = Math.floor(Math.random()*9);
-    const c = Math.floor(Math.random()*9);
-    if(p[r][c] !== null){
-      p[r][c] = null;
-      toRemove--;
+/* -------------------------------- GENERATOR -------------------------------- */
+
+function generateSudoku(){
+  let grid = Array.from({length:9},()=>Array(9).fill(0));
+  fillGrid(grid);
+  return grid;
+}
+
+function fillGrid(grid){
+  for(let row=0;row<9;row++){
+    for(let col=0;col<9;col++){
+      if(grid[row][col]===0){
+        let nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
+        for(let num of nums){
+          if(valid(grid,row,col,num)){
+            grid[row][col]=num;
+            if(fillGrid(grid)) return true;
+            grid[row][col]=0;
+          }
+        }
+        return false;
+      }
     }
   }
-  return p;
+  return true;
 }
 
-/* Utility: when numbers change, update auto-candidates if enabled */
-function onBoardChange(){
-  if(autoCandidateMode) updateAutoCandidates();
+function valid(grid,row,col,num){
+  for(let x=0;x<9;x++){
+    if(grid[row][x]===num) return false;
+    if(grid[x][col]===num) return false;
+  }
+
+  let sr=row-row%3, sc=col-col%3;
+  for(let r=0;r<3;r++){
+    for(let c=0;c<3;c++){
+      if(grid[sr+r][sc+c]===num) return false;
+    }
+  }
+
+  return true;
 }
 
-/* Optional: export current page HTML (user can click the button in console) */
-function exportHTML(){
-  const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'sudoku.html';
-  a.click();
-  URL.revokeObjectURL(url);
+function removeCells(grid, count){
+  let puzzle = grid.map(r=>r.slice());
+  let removed=0;
+
+  while(removed<count){
+    let r=Math.floor(Math.random()*9);
+    let c=Math.floor(Math.random()*9);
+
+    if(puzzle[r][c] !== null){
+      puzzle[r][c] = null;
+      removed++;
+    }
+  }
+
+  return puzzle;
 }
+
 </script>
-
 </body>
 </html>
