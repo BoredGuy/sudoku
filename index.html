@@ -1,158 +1,456 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Sudoku — Minified Swiss/Bauhaus</title><style>
-:root{--bg:#f7f7f7;--fg:#111;--muted:#555;--accent:#111;--blue:#d9f0f0;--yellow:#fce5b3;--green:#c8e6c9;--red:#ffcdd2;--cell:52px}
-*{box-sizing:border-box}body{font-family:"Helvetica Neue",Arial,sans-serif;margin:0;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;align-items:center;padding:22px}h1{font-weight:700;margin:0 0 12px;font-size:28px;letter-spacing:1px}
-#top{width:100%;max-width:820px;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
-.controls{display:flex;gap:10px;align-items:center}
-label{font-weight:600}select{padding:8px 10px;font-size:14px;border:2px solid var(--accent);background:#fff;color:var(--fg)}
-button{background:var(--accent);color:#fff;border:0;padding:8px 12px;font-size:13px;cursor:pointer;text-transform:uppercase;letter-spacing:.6px}
-button[hidden]{display:none}button:focus{outline:3px solid #000;outline-offset:2px}
-.info{display:flex;gap:12px;align-items:center;font-weight:600;font-size:14px}
-.badge{padding:6px 10px;border:2px solid var(--accent);background:#fff;font-weight:700}
-.board{width:100%;max-width:calc(var(--cell)*9);display:flex;flex-direction:column;align-items:center}
-table{border-collapse:collapse;margin-top:18px;background:#fff;display:none}
-td{width:var(--cell);height:var(--cell);border:1px solid var(--accent);text-align:center;vertical-align:middle;font-size:20px;position:relative;cursor:pointer;user-select:none;padding:0;font-weight:500}
-td.fixed{font-weight:700}td.selected{background:var(--blue)}td.clue-selected{background:var(--yellow)}td.correct{background:var(--green)}td.incorrect{background:var(--red)}
-td:nth-child(3n){border-right:2px solid var(--accent)}tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
-.cand{position:absolute;inset:4px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);font-size:11px;color:var(--muted)}
-.cand div{display:flex;align-items:center;justify-content:center}
-#controls-row{display:none;gap:8px;margin-top:12px}
-@media(max-width:640px){:root{--cell:40px}}
-</style></head><body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sudoku Game</title>
+
+<style>
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  margin: 0; padding: 20px; background-color: #f7f7f7; color: #111;
+}
+h1 { font-weight: 700; font-size: 2rem; margin-bottom: 20px; text-align: center; letter-spacing: 1px; }
+button {
+  background-color: #111; color: #fff; border: none;
+  padding: 10px 18px; font-size: 16px; margin: 6px; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+button:hover { background-color: #333; }
+select {
+  padding: 8px 12px; font-size: 16px; border: 2px solid #111;
+  background-color: #fff; color: #111; margin-left: 5px;
+}
+#difficultyContainer { display: flex; align-items: center; margin-bottom: 10px; }
+#timer, #difficultyDisplay { font-weight: 600; font-size: 1rem; margin-top: 10px; }
+table { border-collapse: collapse; margin-top: 20px; display:none; }
+td {
+  width: 50px; height: 50px; text-align: center; vertical-align: middle;
+  border: 1px solid #111; font-size: 20px; cursor: pointer; position: relative;
+}
+td.selected { background-color: #d9f0f0; }
+td.clue-selected { background-color: #fce5b3; }
+td.correct { background-color: #c8e6c9; }
+td.incorrect { background-color: #ffcdd2; }
+td.fixed { font-weight: 700; color: #111; }
+
+.candidate {
+  font-size: 10px; position: absolute; top: 2px; left: 2px;
+  display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr);
+  width: 100%; height: 100%; color: #555;
+}
+.candidate div { text-align: center; }
+
+td:nth-child(3n) { border-right: 2px solid #111; }
+tr:nth-child(3n) td { border-bottom: 2px solid #111; }
+
+#controls { display: none; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+</style>
+</head>
+
+<body>
+
 <h1>Sudoku</h1>
-<div id="top">
-  <div class="controls">
-    <div id="difficultyContainer"><label>Difficulty: <select id="difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></label></div>
-    <button id="startBtn">Start New Game</button>
-    <button id="candidateToggle" hidden>Candidate Mode: OFF</button>
-    <button id="autoToggle" hidden>Auto Candidates: OFF</button>
-  </div>
-  <div class="info"><div id="timer" class="badge" hidden>Time: 00:00</div><div id="diffDisplay" class="badge small" hidden>Difficulty: Medium</div></div>
+
+<div id="difficultyContainer">
+  <label>Difficulty:
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+  </label>
 </div>
 
-<div class="board">
-  <table id="grid"></table>
-  <div id="controls-row"><button id="checkBtn" hidden>Check</button><button id="hintBtn" hidden>Hint</button></div>
+<button id="startBtn" onclick="startGame()">Start New Game</button>
+
+<div id="timer" style="display:none;">Time: 00:00</div>
+<div id="difficultyDisplay" style="display:none;"></div>
+
+<div id="controls">
+  <button id="candidateToggle" onclick="toggleCandidateMode()">Candidate Mode: OFF</button>
+  <button id="autoCandidateBtn" onclick="toggleAutoCandidateMode()">Auto Candidate Mode: OFF</button>
+  <button onclick="checkSolution()">Check</button>
+  <button onclick="getHint()">Hint</button>
 </div>
+
+<table id="sudoku-grid"></table>
 
 <script>
-/* Minified but fully functional Sudoku with fixed candidate handling */
-let puzzle=[],solution=[],selR=0,selC=0,ti=null,sec=0,candidateMode=false,autoMode=false,candidates={},diff='medium';
-const $=(q)=>document.querySelector(q), $$=(q)=>Array.from(document.querySelectorAll(q));
-function startTimer(){clearInterval(ti);sec=0;$('#timer').textContent='Time: 00:00';ti=setInterval(()=>{sec++;let m=String(Math.floor(sec/60)).padStart(2,'0'),s=String(sec%60).padStart(2,'0');$('#timer').textContent=`Time: ${m}:${s}`},1000)}
-function startGame(){
-  $('#startBtn').hidden=true;$('#difficultyContainer').hidden=true;
-  $('#timer').hidden=false;$('#diffDisplay').hidden=false;$('#grid').style.display='table';
-  $('#candidateToggle').hidden=false;$('#autoToggle').hidden=false;$('#checkBtn').hidden=false;$('#hintBtn').hidden=false;$('#controls-row').style.display='flex';
-  diff=$('#difficulty').value;$('#diffDisplay').textContent='Difficulty: '+(diff.charAt(0).toUpperCase()+diff.slice(1));
-  const empty = diff==='easy'?30:diff==='medium'?40:50;
-  const board = generate(); solution = board.map(r=>r.slice()); puzzle=remove(board,empty); candidates={};
-  render(); startTimer(); selectCell(0,0); if(autoMode) updateAuto();
-}
-$('#startBtn').addEventListener('click',startGame);
-$('#candidateToggle').addEventListener('click',()=>{candidateMode=!candidateMode;$('#candidateToggle').textContent=`Candidate Mode: ${candidateMode?'ON':'OFF'}`});
-$('#autoToggle').addEventListener('click',()=>{autoMode=!autoMode;$('#autoToggle').textContent=`Auto Candidates: ${autoMode?'ON':'OFF'}`; if(autoMode) updateAuto(); else {candidates={}; updateDisplay()}});
-$('#checkBtn').addEventListener('click',checkSolution);$('#hintBtn').addEventListener('click',getHint);
+// ------------------------------------------------------------
+// GLOBALS
+// ------------------------------------------------------------
+let puzzle = [];
+let solution = [];
+let selectedRow = 0;
+let selectedCol = 0;
+let timerInterval;
+let secondsElapsed = 0;
+let candidateMode = false;
+let autoCandidateMode = false;
+let candidates = {}; // manual candidates stay!
+let currentDifficulty = "";
 
-/* render */
-function render(){
-  const grid=$('#grid');grid.innerHTML='';for(let r=0;r<9;r++){const tr=document.createElement('tr');for(let c=0;c<9;c++){const td=document.createElement('td');td.dataset.row=r;td.dataset.col=c;if(puzzle[r][c]!==null){td.textContent=puzzle[r][c];td.classList.add('fixed')}td.addEventListener('click',()=>selectCell(r,c));tr.appendChild(td)}grid.appendChild(tr)}updateDisplay()
-}
-function selectCell(r,c){$$('td.selected, td.clue-selected').forEach(t=>t.classList.remove('selected','clue-selected'));const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);if(!td) return; td.classList.contains('fixed')?td.classList.add('clue-selected'):td.classList.add('selected'); selR=r; selC=c;}
 
-/* keyboard */
-document.addEventListener('keydown',e=>{
-  const k=e.key;
-  if(k===' '){e.preventDefault(); candidateMode=!candidateMode;$('#candidateToggle').textContent=`Candidate Mode: ${candidateMode?'ON':'OFF'}`; return}
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k)){e.preventDefault(); move(k); return}
-  if(k>='1'&&k<='9'){place(k); return}
-  if(['Backspace','Delete','0'].includes(k)){clearCell(); return}
+// ------------------------------------------------------------
+// TIMER
+// ------------------------------------------------------------
+function startTimer() {
+  clearInterval(timerInterval);
+  secondsElapsed = 0;
+
+  timerInterval = setInterval(() => {
+    secondsElapsed++;
+    const mins = String(Math.floor(secondsElapsed/60)).padStart(2,'0');
+    const secs = String(secondsElapsed%60).padStart(2,'0');
+    document.getElementById("timer").textContent = "Time: " + mins + ":" + secs;
+  }, 1000);
+}
+
+
+// ------------------------------------------------------------
+// START GAME
+// ------------------------------------------------------------
+function startGame() {
+  document.getElementById("startBtn").style.display = "none";
+  document.getElementById("difficultyContainer").style.display = "none";
+
+  document.getElementById("timer").style.display = "block";
+  document.getElementById("difficultyDisplay").style.display = "block";
+  document.getElementById("controls").style.display = "flex";
+  document.getElementById("sudoku-grid").style.display = "table";
+
+  currentDifficulty = document.getElementById("difficulty").value;
+  document.getElementById("difficultyDisplay").textContent =
+    "Difficulty: " + currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+
+  const emptyCells = currentDifficulty === "easy" ? 30 :
+                     currentDifficulty === "medium" ? 40 : 50;
+
+  const board = generateSudoku();
+  solution = board.map(r => r.slice());
+  puzzle = removeCells(board, emptyCells);
+
+  candidates = {};
+
+  renderGrid();
+  startTimer();
+  selectCell(0,0);
+
+  if (autoCandidateMode) updateAutoCandidates();
+}
+
+
+// ------------------------------------------------------------
+// RENDER GRID
+// ------------------------------------------------------------
+function renderGrid() {
+  const grid = document.getElementById("sudoku-grid");
+  grid.innerHTML = "";
+
+  for (let r = 0; r < 9; r++) {
+    const tr = document.createElement("tr");
+
+    for (let c = 0; c < 9; c++) {
+      const td = document.createElement("td");
+      td.dataset.row = r;
+      td.dataset.col = c;
+
+      if (puzzle[r][c] !== null) {
+        td.textContent = puzzle[r][c];
+        td.classList.add("fixed");
+      }
+
+      td.onclick = () => selectCell(r, c);
+      tr.appendChild(td);
+    }
+
+    grid.appendChild(tr);
+  }
+
+  updateCandidatesDisplay();
+}
+
+
+// ------------------------------------------------------------
+// CELL SELECTION
+// ------------------------------------------------------------
+function selectCell(r, c) {
+  const prev = document.querySelector("td.selected, td.clue-selected");
+  if (prev) prev.classList.remove("selected", "clue-selected");
+
+  const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+  if (td.classList.contains("fixed")) td.classList.add("clue-selected");
+  else td.classList.add("selected");
+
+  selectedRow = r;
+  selectedCol = c;
+}
+
+
+// ------------------------------------------------------------
+// KEYBOARD HANDLING
+// ------------------------------------------------------------
+document.addEventListener("keydown", (e) => {
+  const k = e.key;
+
+  if (k === " ") { e.preventDefault(); toggleCandidateMode(); return; }
+  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(k)) {
+    e.preventDefault(); moveSelection(k); return;
+  }
+
+  if (k >= "1" && k <= "9") {
+    const td = getSelectedCell();
+    if (!td.classList.contains("fixed")) {
+      if (candidateMode) {
+        toggleCandidate(td, k);
+      } else {
+        // WRITE NUMBER — DO NOT REMOVE OTHER CANDIDATES ANYMORE
+        td.textContent = k;
+        td.classList.remove("incorrect", "correct");
+        delete candidates[`${selectedRow}-${selectedCol}`];
+        td.querySelector(".candidate")?.remove();
+        if (autoCandidateMode) updateAutoCandidates();
+      }
+    }
+    return;
+  }
+
+  if (["Backspace", "Delete", "0"].includes(k)) {
+    const td = getSelectedCell();
+    if (!td.classList.contains("fixed")) {
+      td.textContent = "";
+      td.classList.remove("correct", "incorrect");
+      delete candidates[`${selectedRow}-${selectedCol}`];
+      td.querySelector(".candidate")?.remove();
+      if (autoCandidateMode) updateAutoCandidates();
+    }
+    return;
+  }
 });
-function move(d){let r=selR,c=selC; if(d==='ArrowUp') r=(r+8)%9; if(d==='ArrowDown') r=(r+1)%9; if(d==='ArrowLeft') c=(c+8)%9; if(d==='ArrowRight') c=(c+1)%9; selectCell(r,c)}
-function place(n){
-  const td=document.querySelector(`td[data-row="${selR}"][data-col="${selC}"]`); if(!td||td.classList.contains('fixed')) return;
-  if(candidateMode){ toggleCandidate(selR,selC,n); return }
-  td.textContent = n;
-  td.querySelector('.cand')?.remove();
-  delete candidates[`${selR}-${selC}`];
-  if(autoMode) updateAuto();
-}
-function clearCell(){
-  const td=document.querySelector(`td[data-row="${selR}"][data-col="${selC}"]`); if(!td||td.classList.contains('fixed')) return;
-  td.textContent=''; td.querySelector('.cand')?.remove(); delete candidates[`${selR}-${selC}`]; if(autoMode) updateAuto();
+
+function getSelectedCell() {
+  return document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
 }
 
-/* manual candidate toggle */
-function toggleCandidate(r,c,n){
-  const key=`${r}-${c}`; if(!candidates[key]) candidates[key]=new Set();
-  candidates[key].has(n)?candidates[key].delete(n):candidates[key].add(n);
-  // ensure main digit remains empty when adding candidates
-  const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`); td.textContent=''; updateDisplay();
+
+// ------------------------------------------------------------
+// MOVE SELECTION
+// ------------------------------------------------------------
+function moveSelection(dir) {
+  let r = selectedRow, c = selectedCol;
+  if (dir === "ArrowUp") r = (r + 8) % 9;
+  if (dir === "ArrowDown") r = (r + 1) % 9;
+  if (dir === "ArrowLeft") c = (c + 8) % 9;
+  if (dir === "ArrowRight") c = (c + 1) % 9;
+  selectCell(r, c);
 }
 
-/* auto candidates: compute possible numbers without overwriting digits */
-function updateAuto(){
-  candidates={};
-  for(let r=0;r<9;r++){
-    for(let c=0;c<9;c++){
-      const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
-      if(!td) continue;
-      if(td.classList.contains('fixed')) continue;
-      if(td.textContent && td.textContent.trim()!=='') continue; // preserve entered digit
-      const key=`${r}-${c}`; candidates[key]=new Set();
-      for(let n=1;n<=9;n++) if(isValid(r,c,n)) candidates[key].add(String(n));
+
+// ------------------------------------------------------------
+// CANDIDATE SYSTEM
+// ------------------------------------------------------------
+function toggleCandidateMode() {
+  candidateMode = !candidateMode;
+  document.getElementById("candidateToggle").textContent =
+    "Candidate Mode: " + (candidateMode ? "ON" : "OFF");
+}
+
+function toggleCandidate(td, num) {
+  const key = `${selectedRow}-${selectedCol}`;
+  if (!candidates[key]) candidates[key] = new Set();
+
+  if (candidates[key].has(num)) candidates[key].delete(num);
+  else candidates[key].add(num);
+
+  td.textContent = "";
+  updateCandidatesDisplay();
+}
+
+function toggleAutoCandidateMode() {
+  autoCandidateMode = !autoCandidateMode;
+  document.getElementById("autoCandidateBtn").textContent =
+    "Auto Candidate Mode: " + (autoCandidateMode ? "ON" : "OFF");
+
+  if (autoCandidateMode) updateAutoCandidates();
+  else updateCandidatesDisplay();
+}
+
+
+// ------------------------------------------------------------
+// AUTO-CANDIDATES
+// ------------------------------------------------------------
+function updateAutoCandidates() {
+  candidates = {}; // rebuild fresh
+
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+      if (!td.classList.contains("fixed") && !td.textContent) {
+        const key = `${r}-${c}`;
+        candidates[key] = new Set();
+
+        for (let n = 1; n <= 9; n++) {
+          if (isValidMove(r, c, n)) candidates[key].add(n.toString());
+        }
+      }
     }
   }
-  updateDisplay();
+
+  updateCandidatesDisplay();
 }
 
-/* display candidates only for empty cells; do not clear digits */
-function updateDisplay(){
-  // remove existing candidate elements
-  $$('.cand').forEach(e=>e.remove());
-  for(const k in candidates){
-    const [r,c]=k.split('-').map(Number); const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
-    if(!td) continue; if(td.textContent && td.textContent.trim()!=='') continue; // show only if empty
-    const div=document.createElement('div'); div.className='cand';
-    for(let i=1;i<=9;i++) div.innerHTML += `<div>${candidates[k].has(String(i))?i:''}</div>`;
+
+// ------------------------------------------------------------
+// CANDIDATE DISPLAY
+// ------------------------------------------------------------
+function updateCandidatesDisplay() {
+  // clear all candidate overlays first
+  document.querySelectorAll(".candidate").forEach(el => el.remove());
+
+  for (const key in candidates) {
+    const [r, c] = key.split("-").map(Number);
+    const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+    if (!td || td.textContent) continue;
+
+    const div = document.createElement("div");
+    div.classList.add("candidate");
+
+    for (let i = 1; i <= 9; i++) {
+      div.innerHTML += `<div>${candidates[key].has(String(i)) ? i : ""}</div>`;
+    }
+
     td.appendChild(div);
   }
 }
 
-/* isValid for candidates based on current grid */
-function isValid(r,c,n){
-  n=String(n);
-  for(let x=0;x<9;x++){
-    const rv=document.querySelector(`td[data-row="${r}"][data-col="${x}"]`)?.textContent;
-    const cv=document.querySelector(`td[data-row="${x}"][data-col="${c}"]`)?.textContent;
-    if(rv==n||cv==n) return false;
+
+// ------------------------------------------------------------
+// VALID MOVE CHECK
+// ------------------------------------------------------------
+function isValidMove(row, col, num) {
+  num = String(num);
+
+  for (let i = 0; i < 9; i++) {
+    if (getCell(row, i).textContent === num) return false;
+    if (getCell(i, col).textContent === num) return false;
   }
-  const sr=r-r%3, sc=c-c%3;
-  for(let i=0;i<3;i++) for(let j=0;j<3;j++){
-    const bv=document.querySelector(`td[data-row="${sr+i}"][data-col="${sc+j}"]`)?.textContent;
-    if(bv==n) return false;
-  }
+
+  const sr = row - (row % 3);
+  const sc = col - (col % 3);
+  for (let i = 0; i < 3; i++)
+    for (let j = 0; j < 3; j++)
+      if (getCell(sr+i, sc+j).textContent === num) return false;
+
   return true;
 }
 
-/* check & hint */
-function checkSolution(){ for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`); const val=td.textContent; if(val==solution[r][c]) td.classList.add('correct'); else if(!td.classList.contains('fixed')) td.classList.add('incorrect'); } }
-function getHint(){ for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`); if(!td.classList.contains('fixed') && (!td.textContent||td.textContent.trim()==='')){ td.textContent=solution[r][c]; td.querySelector('.cand')?.remove(); if(autoMode) updateAuto(); return } } }
-
-/* generator (backtracking randomized) */
-function generate(){
-  const g=Array.from({length:9},()=>Array(9).fill(0));
-  const valid=function(b,r,c,n){ for(let x=0;x<9;x++){ if(b[r][x]===n||b[x][c]===n) return false } const sr=r-r%3, sc=c-c%3; for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(b[sr+i][sc+j]===n) return false; return true }
-  function solve(b){
-    for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(b[r][c]===0){ const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5); for(const n of nums){ if(valid(b,r,c,n)){ b[r][c]=n; if(solve(b)) return true; b[r][c]=0 } } return false }
-    return true
-  }
-  solve(g); return g;
+function getCell(r, c) {
+  return document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
 }
-function remove(board,count){ const p=board.map(r=>r.slice()); let rem=count; while(rem>0){ const r=Math.floor(Math.random()*9), c=Math.floor(Math.random()*9); if(p[r][c]!==null){ p[r][c]=null; rem-- } } return p }
 
-/* Expose check/hint buttons after start */
-$('#checkBtn').addEventListener('click',checkSolution); $('#hintBtn').addEventListener('click',getHint);
 
-/* Ensure UI elements are shown/hidden when needed (start handles most) */
+// ------------------------------------------------------------
+// CHECK SOLUTION
+// ------------------------------------------------------------
+function checkSolution() {
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const td = getCell(r,c);
+      if (td.textContent == solution[r][c]) td.classList.add("correct");
+      else td.classList.add("incorrect");
+    }
+  }
+}
+
+
+// ------------------------------------------------------------
+// HINT SYSTEM
+// ------------------------------------------------------------
+function getHint() {
+  for (let r=0; r<9; r++) {
+    for (let c=0; c<9; c++) {
+      const td = getCell(r,c);
+      if (!td.classList.contains("fixed") && td.textContent == "") {
+        td.textContent = solution[r][c];
+        td.classList.add("correct");
+        if (autoCandidateMode) updateAutoCandidates();
+        return;
+      }
+    }
+  }
+}
+
+
+// ------------------------------------------------------------
+// SUDOKU GENERATOR
+// ------------------------------------------------------------
+function generateSudoku() {
+  let board = Array.from({length: 9}, () => Array(9).fill(0));
+  fillBoard(board);
+  return board;
+}
+
+function fillBoard(board) {
+  const find = findEmpty(board);
+  if (!find) return true;
+  const [r, c] = find;
+
+  const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+  for (let n of nums) {
+    if (isSafe(board, r, c, n)) {
+      board[r][c] = n;
+      if (fillBoard(board)) return true;
+      board[r][c] = 0;
+    }
+  }
+  return false;
+}
+
+function findEmpty(board) {
+  for (let r=0;r<9;r++)
+    for (let c=0;c<9;c++)
+      if (board[r][c] === 0) return [r,c];
+  return null;
+}
+
+function isSafe(board,r,c,n){
+  for(let i=0;i<9;i++){
+    if(board[r][i]==n) return false;
+    if(board[i][c]==n) return false;
+  }
+  const sr=r-r%3, sc=c-c%3;
+  for(let i=0;i<3;i++)
+    for(let j=0;j<3;j++)
+      if(board[sr+i][sc+j]==n) return false;
+  return true;
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()* (i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function removeCells(board, count) {
+  let puzzle = board.map(r => r.slice());
+  let attempts = count;
+
+  while (attempts > 0) {
+    const r = Math.floor(Math.random()*9);
+    const c = Math.floor(Math.random()*9);
+
+    if (puzzle[r][c] !== null) {
+      puzzle[r][c] = null;
+      attempts--;
+    }
+  }
+  return puzzle;
+}
+
 </script>
-</body></html>
+</body>
+</html>
