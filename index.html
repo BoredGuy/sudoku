@@ -268,35 +268,33 @@ function selectCell(r,c){
 
 document.addEventListener('keydown', (e) => {
   const key = e.key;
-
   if(key === ' '){
     e.preventDefault();
     toggleCandidateMode();
     return;
   }
-
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){
     e.preventDefault();
     moveSelection(key);
     return;
   }
-
-  const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-  if(!td || td.classList.contains('fixed')) return;
-
   if(key >= '1' && key <= '9'){
-    if(candidateMode){
-      toggleCandidate(td, key);
+    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+    if(!td || td.classList.contains('fixed')) return;
+
+    if(candidateMode){ 
+      toggleCandidate(td, key); // toggle candidate only in candidateMode
     } else {
-      td.textContent = key;
+      td.textContent = key;        // normal number entry
       td.classList.remove('correct','incorrect');
       td.querySelector('.candidate')?.remove();
-      if(autoCandidateMode) updateAutoCandidates();
+      if(autoCandidateMode) updateAutoCandidates(); // refresh all auto candidates dynamically
     }
     return;
   }
-
   if(key === 'Backspace' || key === 'Delete' || key === '0'){
+    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+    if(!td || td.classList.contains('fixed')) return;
     td.textContent = '';
     td.classList.remove('correct','incorrect');
     td.querySelector('.candidate')?.remove();
