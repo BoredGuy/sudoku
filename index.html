@@ -268,19 +268,23 @@ function selectCell(r,c){
 
 document.addEventListener('keydown', (e) => {
   const key = e.key;
+
   if(key === ' '){
     e.preventDefault();
     toggleCandidateMode();
     return;
   }
+
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){
     e.preventDefault();
     moveSelection(key);
     return;
   }
+
+  const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+  if(!td || td.classList.contains('fixed')) return;
+
   if(key >= '1' && key <= '9'){
-    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td || td.classList.contains('fixed')) return;
     if(candidateMode){
       toggleCandidate(td, key);
     } else {
@@ -291,9 +295,8 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
+
   if(key === 'Backspace' || key === 'Delete' || key === '0'){
-    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td || td.classList.contains('fixed')) return;
     td.textContent = '';
     td.classList.remove('correct','incorrect');
     td.querySelector('.candidate')?.remove();
