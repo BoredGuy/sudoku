@@ -81,6 +81,7 @@ button:focus{outline:3px solid #000; outline-offset:2px}
   display:inline-block;
   font-weight:700;
 }
+
 .board-wrap{
   width:100%;
   max-width:560px;
@@ -113,6 +114,7 @@ td.correct{background:var(--green)}
 td.incorrect{background:var(--red)}
 td:nth-child(3n){border-right:2px solid var(--accent)}
 tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
+
 .candidate{
   position:absolute;
   inset:4px;
@@ -123,6 +125,7 @@ tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
   color:var(--muted);
 }
 .candidate div{display:flex;align-items:center;justify-content:center}
+
 #footer{
   margin-top:14px;
   display:flex;
@@ -138,11 +141,14 @@ tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
   padding:6px 10px;
   font-weight:700;
 }
+
 #versionInfo{
-  margin-top:10px;
-  font-size:0.9em;
-  color:#555;
+  margin-top:18px;
+  font-size:12px;
+  color:var(--muted);
+  font-family:monospace;
 }
+
 @media (max-width:640px){
   :root{--cell-size:44px}
   table{max-width:calc(var(--cell-size)*9)}
@@ -152,10 +158,6 @@ tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
 <body>
 
 <h1>Sudoku</h1>
-
-<div id="versionInfo">
-  Version: <span id="versionNumber">1.0.0</span> — Last edit: <span id="lastEdit">loading…</span>
-</div>
 
 <div id="topbar">
   <div class="controls-left">
@@ -187,70 +189,83 @@ tr:nth-child(3n) td{border-bottom:2px solid var(--accent)}
   </div>
 </div>
 
+<div id="versionInfo">Loading version info...</div>
+
 <script>
-/* --- Version / Last Edit --- */
-const VERSION = '1.0.0';
-document.getElementById('versionNumber').textContent = VERSION;
+const repoOwner = "BoredGuy";
+const repoName = "sudoku";
+const filePath = "sudoku.html";
 
-const OWNER = 'BoredGuy';
-const REPO = 'sudoku';
-const FILE_PATH = 'sudoku.html';
-
-async function fetchLastEdit(){
+// Fetch GitHub last commit for this file
+async function fetchVersionInfo(){
+  const url = `https://api.github.com/repos/${repoOwner}/${repoName}/commits?path=${filePath}&per_page=1`;
   try{
-    const resp = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=${encodeURIComponent(FILE_PATH)}&per_page=1`);
-    const data = await resp.json();
-    if(Array.isArray(data) && data.length>0){
-      const dt = new Date(data[0].commit.committer.date);
-      document.getElementById('lastEdit').textContent = dt.toLocaleString();
-    }else{
-      document.getElementById('lastEdit').textContent = 'unknown';
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data && data[0]){
+      const commit = data[0].commit;
+      const sha = data[0].sha.substring(0,7);
+      const date = new Date(commit.committer.date);
+      document.getElementById('versionInfo').textContent =
+        `Version: ${sha} — Last edit: ${date.toLocaleString()}`;
+    } else {
+      document.getElementById('versionInfo').textContent = 'Version info not available';
     }
-  }catch(e){
-    console.warn(e);
-    document.getElementById('lastEdit').textContent = 'error';
+  } catch(e){
+    document.getElementById('versionInfo').textContent = 'Version info not available';
   }
 }
-fetchLastEdit();
 
-/* --- Sudoku Game --- */
-let puzzle=[], solution=[], selectedRow=0, selectedCol=0, timerInterval=null, secondsElapsed=0;
-let candidateMode=false, autoCandidateMode=false, candidates={}, currentDifficulty='';
+fetchVersionInfo();
+
+// ------------------- Sudoku Logic -------------------
+let puzzle = [];
+let solution = [];
+let selectedRow = 0;
+let selectedCol = 0;
+let timerInterval = null;
+let secondsElapsed = 0;
+let candidateMode = false;
+let autoCandidateMode = false;
+let candidates = {};
+let currentDifficulty = '';
 
 function startTimer(){
   clearInterval(timerInterval);
-  secondsElapsed=0;
-  document.getElementById('timer').textContent="Time: 00:00";
-  timerInterval=setInterval(()=>{
+  secondsElapsed = 0;
+  document.getElementById('timer').textContent = "Time: 00:00";
+  timerInterval = setInterval(()=> {
     secondsElapsed++;
-    const m=String(Math.floor(secondsElapsed/60)).padStart(2,'0');
-    const s=String(secondsElapsed%60).padStart(2,'0');
-    document.getElementById('timer').textContent=`Time: ${m}:${s}`;
+    const m = String(Math.floor(secondsElapsed/60)).padStart(2,'0');
+    const s = String(secondsElapsed%60).padStart(2,'0');
+    document.getElementById('timer').textContent = `Time: ${m}:${s}`;
   },1000);
 }
 
 document.getElementById('startBtn').addEventListener('click', startGame);
 
 function startGame(){
-  document.getElementById('startBtn').hidden=true;
-  document.getElementById('difficultyContainer').hidden=true;
-  document.getElementById('timer').hidden=false;
-  document.getElementById('difficultyDisplay').hidden=false;
-  document.getElementById('sudoku-grid').hidden=false;
-  document.getElementById('candidateToggle').hidden=false;
-  document.getElementById('autoCandidateBtn').hidden=false;
-  document.getElementById('checkBtn').hidden=false;
-  document.getElementById('hintBtn').hidden=false;
+  document.getElementById('startBtn').hidden = true;
+  document.getElementById('difficultyContainer').hidden = true;
 
-  currentDifficulty=document.getElementById('difficulty').value;
-  document.getElementById('difficultyDisplay').textContent="Difficulty: "+currentDifficulty.charAt(0).toUpperCase()+currentDifficulty.slice(1);
+  document.getElementById('timer').hidden = false;
+  document.getElementById('difficultyDisplay').hidden = false;
+  document.getElementById('sudoku-grid').hidden = false;
+  document.getElementById('candidateToggle').hidden = false;
+  document.getElementById('autoCandidateBtn').hidden = false;
+  document.getElementById('checkBtn').hidden = false;
+  document.getElementById('hintBtn').hidden = false;
 
-  const emptyCells=currentDifficulty==='easy'?30:currentDifficulty==='medium'?40:50;
-  const board=generateSudoku();
-  solution=board.map(r=>r.slice());
-  puzzle=removeCells(board, emptyCells);
+  currentDifficulty = document.getElementById('difficulty').value;
+  document.getElementById('difficultyDisplay').textContent =
+    "Difficulty: " + (currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1));
 
-  candidates={};
+  const emptyCells = currentDifficulty === 'easy' ? 30 : currentDifficulty === 'medium' ? 40 : 50;
+  const board = generateSudoku();
+  solution = board.map(r => r.slice());
+  puzzle = removeCells(board, emptyCells);
+
+  candidates = {};
   renderGrid();
   startTimer();
   selectCell(0,0);
@@ -258,14 +273,17 @@ function startGame(){
 }
 
 function renderGrid(){
-  const grid=document.getElementById('sudoku-grid');
-  grid.innerHTML='';
+  const grid = document.getElementById('sudoku-grid');
+  grid.innerHTML = '';
   for(let r=0;r<9;r++){
-    const tr=document.createElement('tr');
+    const tr = document.createElement('tr');
     for(let c=0;c<9;c++){
-      const td=document.createElement('td');
-      td.dataset.row=r; td.dataset.col=c;
-      if(puzzle[r][c]!==null){td.textContent=puzzle[r][c]; td.classList.add('fixed');}
+      const td = document.createElement('td');
+      td.dataset.row = r; td.dataset.col = c;
+      if(puzzle[r][c] !== null){
+        td.textContent = puzzle[r][c];
+        td.classList.add('fixed');
+      }
       td.addEventListener('click', ()=> selectCell(r,c));
       tr.appendChild(td);
     }
@@ -275,34 +293,46 @@ function renderGrid(){
 }
 
 function selectCell(r,c){
-  const prev=document.querySelector('td.selected, td.clue-selected');
+  const prev = document.querySelector('td.selected, td.clue-selected');
   if(prev) prev.classList.remove('selected','clue-selected');
-  const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+  const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
   if(!td) return;
   if(td.classList.contains('fixed')) td.classList.add('clue-selected');
   else td.classList.add('selected');
-  selectedRow=r; selectedCol=c;
+  selectedRow = r; selectedCol = c;
 }
 
-document.addEventListener('keydown',(e)=>{
-  const key=e.key;
-  if(key===' '){e.preventDefault(); toggleCandidateMode(); return;}
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){e.preventDefault(); moveSelection(key); return;}
-  if(key>='1' && key<='9'){
-    const td=document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td||td.classList.contains('fixed')) return;
-    if(candidateMode){ toggleCandidate(td,key); }
-    else {
-      td.textContent=key; td.classList.remove('correct','incorrect');
+document.addEventListener('keydown', (e) => {
+  const key = e.key;
+  if(key === ' '){
+    e.preventDefault();
+    toggleCandidateMode();
+    return;
+  }
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){
+    e.preventDefault();
+    moveSelection(key);
+    return;
+  }
+  if(key >= '1' && key <= '9'){
+    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+    if(!td || td.classList.contains('fixed')) return;
+
+    if(candidateMode){ 
+      toggleCandidate(td, key);
+    } else {
+      td.textContent = key;
+      td.classList.remove('correct','incorrect');
       td.querySelector('.candidate')?.remove();
       if(autoCandidateMode) updateAutoCandidates();
     }
     return;
   }
-  if(key==='Backspace'||key==='Delete'||key==='0'){
-    const td=document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
-    if(!td||td.classList.contains('fixed')) return;
-    td.textContent=''; td.classList.remove('correct','incorrect');
+  if(key === 'Backspace' || key === 'Delete' || key === '0'){
+    const td = document.querySelector(`td[data-row="${selectedRow}"][data-col="${selectedCol}"]`);
+    if(!td || td.classList.contains('fixed')) return;
+    td.textContent = '';
+    td.classList.remove('correct','incorrect');
     td.querySelector('.candidate')?.remove();
     delete candidates[`${selectedRow}-${selectedCol}`];
     if(autoCandidateMode) updateAutoCandidates();
@@ -311,89 +341,119 @@ document.addEventListener('keydown',(e)=>{
 });
 
 function moveSelection(direction){
-  let r=selectedRow,c=selectedCol;
-  if(direction==='ArrowUp') r=(r+8)%9;
-  if(direction==='ArrowDown') r=(r+1)%9;
-  if(direction==='ArrowLeft') c=(c+8)%9;
-  if(direction==='ArrowRight') c=(c+1)%9;
+  let r = selectedRow, c = selectedCol;
+  if(direction === 'ArrowUp') r = (r + 8) % 9;
+  if(direction === 'ArrowDown') r = (r + 1) % 9;
+  if(direction === 'ArrowLeft') c = (c + 8) % 9;
+  if(direction === 'ArrowRight') c = (c + 1) % 9;
   selectCell(r,c);
 }
 
 document.getElementById('candidateToggle').addEventListener('click', toggleCandidateMode);
-function toggleCandidateMode(){ candidateMode=!candidateMode; document.getElementById('candidateToggle').textContent=`Candidate Mode: ${candidateMode?'ON':'OFF'}`;}
-document.getElementById('autoCandidateBtn').addEventListener('click', toggleAutoCandidateMode);
-function toggleAutoCandidateMode(){ autoCandidateMode=!autoCandidateMode; document.getElementById('autoCandidateBtn').textContent=`Auto Candidate Mode: ${autoCandidateMode?'ON':'OFF'}`; if(autoCandidateMode) updateAutoCandidates(); else { candidates={}; updateCandidatesDisplay(); }}
+function toggleCandidateMode(){
+  candidateMode = !candidateMode;
+  document.getElementById('candidateToggle').textContent = `Candidate Mode: ${candidateMode ? 'ON' : 'OFF'}`;
+}
 
-function toggleCandidate(td,num){
-  const key=`${selectedRow}-${selectedCol}`;
-  if(!candidates[key]) candidates[key]=new Set();
+document.getElementById('autoCandidateBtn').addEventListener('click', toggleAutoCandidateMode);
+function toggleAutoCandidateMode(){
+  autoCandidateMode = !autoCandidateMode;
+  document.getElementById('autoCandidateBtn').textContent = `Auto Candidate Mode: ${autoCandidateMode ? 'ON' : 'OFF'}`;
+  if(autoCandidateMode) updateAutoCandidates();
+  else { candidates = {}; updateCandidatesDisplay(); }
+}
+
+function toggleCandidate(td, num){
+  const key = `${selectedRow}-${selectedCol}`;
+  if(!candidates[key]) candidates[key] = new Set();
   if(candidates[key].has(num)) candidates[key].delete(num);
   else candidates[key].add(num);
-  td.textContent='';
+  td.textContent = '';
   updateCandidatesDisplay();
 }
 
 function updateAutoCandidates(){
-  candidates={};
+  candidates = {};
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
-      const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
-      if(!td) continue; if(td.classList.contains('fixed')) continue; if(td.textContent && td.textContent.trim()!=='') continue;
-      const key=`${r}-${c}`;
-      candidates[key]=new Set();
-      for(let n=1;n<=9;n++){ if(isValidMove(r,c,n)) candidates[key].add(String(n)); }
+      const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+      if(!td) continue;
+      if(td.classList.contains('fixed')) continue;
+      if(td.textContent && td.textContent.trim() !== '') continue;
+      const key = `${r}-${c}`;
+      candidates[key] = new Set();
+      for(let n=1;n<=9;n++){
+        if(isValidMove(r,c,n)) candidates[key].add(String(n));
+      }
     }
   }
   updateCandidatesDisplay();
 }
 
 function isValidMove(row,col,num){
-  num=String(num);
+  num = String(num);
   for(let x=0;x<9;x++){
-    const rv=document.querySelector(`td[data-row="${row}"][data-col="${x}"]`)?.textContent;
-    const cv=document.querySelector(`td[data-row="${x}"][data-col="${col}"]`)?.textContent;
-    if(rv===num||cv===num) return false;
+    const rv = document.querySelector(`td[data-row="${row}"][data-col="${x}"]`)?.textContent;
+    const cv = document.querySelector(`td[data-row="${x}"][data-col="${col}"]`)?.textContent;
+    if(rv === num) return false;
+    if(cv === num) return false;
   }
-  const sr=row-row%3, sc=col-col%3;
-  for(let i=0;i<3;i++) for(let j=0;j<3;j++){ const bv=document.querySelector(`td[data-row="${sr+i}"][data-col="${sc+j}"]`)?.textContent; if(bv===num) return false; }
+  const sr = row - row%3, sc = col - col%3;
+  for(let i=0;i<3;i++) for(let j=0;j<3;j++){
+    const bv = document.querySelector(`td[data-row="${sr+i}"][data-col="${sc+j}"]`)?.textContent;
+    if(bv === num) return false;
+  }
   return true;
 }
 
 function updateCandidatesDisplay(){
-  document.querySelectorAll('td .candidate').forEach(n=>n.remove());
+  document.querySelectorAll('td .candidate').forEach(n => n.remove());
   for(const key in candidates){
-    const [r,c]=key.split('-').map(Number);
-    const td=document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
+    const [r,c] = key.split('-').map(Number);
+    const td = document.querySelector(`td[data-row="${r}"][data-col="${c}"]`);
     if(!td) continue;
-    td.textContent='';
-    let div=td.querySelector('.candidate');
-    if(!div){ div=document.createElement('div'); div.className='candidate'; td.appendChild(div); }
-    div.innerHTML='';
-    for(let i=1;i<=9;i++) div.innerHTML+=`<div>${candidates[key].has(String(i))?i:''}</div>`;
+    td.textContent = '';
+    let div = td.querySelector('.candidate');
+    if(!div){
+      div = document.createElement('div');
+      div.className = 'candidate';
+      td.appendChild(div);
+    }
+    div.innerHTML = '';
+    for(let i=1;i<=9;i++){
+      div.innerHTML += `<div>${candidates[key].has(String(i)) ? i : ''}</div>`;
+    }
   }
 }
 
 document.getElementById('checkBtn').addEventListener('click', checkSolution);
 function checkSolution(){
-  const rows=document.getElementById('sudoku-grid').rows;
+  const rows = document.getElementById('sudoku-grid').rows;
   for(let r=0;r<9;r++){
     for(let c=0;c<9;c++){
-      const cell=rows[r].cells[c];
-      const val=parseInt(cell.textContent);
-      if(val===solution[r][c]){ cell.classList.remove('incorrect'); cell.classList.add('correct'); }
-      else if(!cell.classList.contains('fixed')){ cell.classList.remove('correct'); if(cell.textContent && cell.textContent.trim()!=='') cell.classList.add('incorrect'); }
+      const cell = rows[r].cells[c];
+      const val = parseInt(cell.textContent);
+      if(val === solution[r][c]){
+        cell.classList.remove('incorrect'); cell.classList.add('correct');
+      } else if(!cell.classList.contains('fixed')){
+        cell.classList.remove('correct');
+        if(cell.textContent && cell.textContent.trim() !== '') cell.classList.add('incorrect');
+      }
     }
   }
 }
 
 document.getElementById('hintBtn').addEventListener('click', getHint);
 function getHint(){
-  const empties=[];
-  const rows=document.getElementById('sudoku-grid').rows;
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++){ const cell=rows[r].cells[c]; if(!cell.classList.contains('fixed') && (!cell.textContent || cell.textContent.trim()==='')) empties.push({r,c,cell}); }
-  if(empties.length===0){ alert('No empty cells left!'); return; }
-  const pick=empties[Math.floor(Math.random()*empties.length)];
-  pick.cell.textContent=solution[pick.r][pick.c];
+  const empties = [];
+  const rows = document.getElementById('sudoku-grid').rows;
+  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+    const cell = rows[r].cells[c];
+    if(!cell.classList.contains('fixed') && (!cell.textContent || cell.textContent.trim()==='')) empties.push({r,c,cell});
+  }
+  if(empties.length === 0){ alert('No empty cells left!'); return; }
+  const pick = empties[Math.floor(Math.random()*empties.length)];
+  pick.cell.textContent = solution[pick.r][pick.c];
   pick.cell.querySelector('.candidate')?.remove();
   delete candidates[`${pick.r}-${pick.c}`];
   pick.cell.classList.add('correct');
@@ -401,17 +461,49 @@ function getHint(){
 }
 
 function generateSudoku(){
-  const board=Array.from({length:9},()=>Array(9).fill(0));
-  function valid(b,r,c,n){ for(let x=0;x<9;x++) if(b[r][x]===n||b[x][c]===n) return false; const sr=r-r%3, sc=c-c%3; for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(b[sr+i][sc+j]===n) return false; return true; }
-  function solve(b){ for(let r=0;r<9;r++){ for(let c=0;c<9;c++){ if(b[r][c]===0){ const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5); for(const n of nums){ if(valid(b,r,c,n)){ b[r][c]=n; if(solve(b)) return true; b[r][c]=0; } } return false; } } } return true; }
-  solve(board); return board;
+  const board = Array.from({length:9}, ()=> Array(9).fill(0));
+  function valid(b,r,c,n){
+    for(let x=0;x<9;x++) if(b[r][x]===n || b[x][c]===n) return false;
+    const sr = r - r%3, sc = c - c%3;
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(b[sr+i][sc+j]===n) return false;
+    return true;
+  }
+  function solve(b){
+    for(let r=0;r<9;r++){
+      for(let c=0;c<9;c++){
+        if(b[r][c]===0){
+          const nums = [1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
+          for(const n of nums){
+            if(valid(b,r,c,n)){
+              b[r][c]=n;
+              if(solve(b)) return true;
+              b[r][c]=0;
+            }
+          }
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  solve(board);
+  return board;
 }
 
-function removeCells(board,emptyCount){
-  const p=board.map(r=>r.slice()); let toRemove=emptyCount;
-  while(toRemove>0){ const r=Math.floor(Math.random()*9); const c=Math.floor(Math.random()*9); if(p[r][c]!==null){ p[r][c]=null; toRemove--; } }
+function removeCells(board, emptyCount){
+  const p = board.map(r => r.slice());
+  let toRemove = emptyCount;
+  while(toRemove>0){
+    const r = Math.floor(Math.random()*9);
+    const c = Math.floor(Math.random()*9);
+    if(p[r][c] !== null){
+      p[r][c] = null;
+      toRemove--;
+    }
+  }
   return p;
 }
 </script>
+
 </body>
 </html>
