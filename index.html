@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Sudoku — Browser Game with Persistence</title>
+<title>Sudoku — Live Candidate Update</title>
 <style>
   :root{
     --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8;
@@ -108,61 +108,51 @@
   </main>
 
   <div class="footer">
-    <div><small>Regenerated full HTML • Candidate mode toggled by SPACE • Auto-candidates with dynamic updating • Persistent board</small></div>
+    <div><small>Live candidate updates • Persistent board • Candidate mode toggled by SPACE</small></div>
     <div><small>Press <kbd>Space</kbd> to toggle candidate mode</small></div>
   </div>
 </div>
 
 <script>
-const SIZE = 9;
-const BOX = 3;
-
-const samplePuzzle = [
-  [5,3,0, 0,7,0, 0,0,0],
-  [6,0,0, 1,9,5, 0,0,0],
-  [0,9,8, 0,0,0, 0,6,0],
-  [8,0,0, 0,6,0, 0,0,3],
-  [4,0,0, 8,0,3, 0,0,1],
-  [7,0,0, 0,2,0, 0,0,6],
-  [0,6,0, 0,0,0, 2,8,0],
-  [0,0,0, 4,1,9, 0,0,5],
-  [0,0,0, 0,8,0, 0,7,9]
+const SIZE=9;
+const BOX=3;
+const samplePuzzle=[
+  [5,3,0,0,7,0,0,0,0],
+  [6,0,0,1,9,5,0,0,0],
+  [0,9,8,0,0,0,0,6,0],
+  [8,0,0,0,6,0,0,0,3],
+  [4,0,0,8,0,3,0,0,1],
+  [7,0,0,0,2,0,0,0,6],
+  [0,6,0,0,0,0,2,8,0],
+  [0,0,0,4,1,9,0,0,5],
+  [0,0,0,0,8,0,0,7,9]
 ];
 
-let puzzle = JSON.parse(JSON.stringify(samplePuzzle));
-let given = Array.from({length:SIZE}, (_,r) => Array.from({length:SIZE}, (_,c) => puzzle[r][c] !== 0));
-let selected = {r:0,c:0};
-let candidateMode = false;
-let autoCandidates = false;
-let candidates = Array.from({length:SIZE}, () => Array.from({length:SIZE}, () => new Set()));
+let puzzle=JSON.parse(JSON.stringify(samplePuzzle));
+let given=Array.from({length:SIZE},(_,r)=>Array.from({length:SIZE},(_,c)=>puzzle[r][c]!==0));
+let selected={r:0,c:0};
+let candidateMode=false;
+let autoCandidates=false;
+let candidates=Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>new Set()));
 
-const boardEl = document.getElementById('board');
-const candidateStatusEl = document.getElementById('candidate-status');
-const autoStatusEl = document.getElementById('auto-status');
-const statusEl = document.getElementById('status');
-const commitInfoEl = document.getElementById('commit-info');
-const toggleDifficultyBtn = document.getElementById('toggle-difficulty-btn');
-const difficultyContainer = document.getElementById('difficulty-container');
-const toggleCandidateBtn = document.getElementById('toggle-candidate-btn');
-const autoCandBtn = document.getElementById('auto-cand-btn');
-const eraseBtn = document.getElementById('erase-btn');
-const resetBtn = document.getElementById('reset-btn');
-const numPad = document.getElementById('num-pad');
+const boardEl=document.getElementById('board');
+const candidateStatusEl=document.getElementById('candidate-status');
+const autoStatusEl=document.getElementById('auto-status');
+const statusEl=document.getElementById('status');
+const commitInfoEl=document.getElementById('commit-info');
+const toggleDifficultyBtn=document.getElementById('toggle-difficulty-btn');
+const difficultyContainer=document.getElementById('difficulty-container');
+const toggleCandidateBtn=document.getElementById('toggle-candidate-btn');
+const autoCandBtn=document.getElementById('auto-cand-btn');
+const eraseBtn=document.getElementById('erase-btn');
+const resetBtn=document.getElementById('reset-btn');
+const numPad=document.getElementById('num-pad');
 
-function inRow(r,n){ return puzzle[r].includes(n); }
-function inCol(c,n){ for(let r=0;r<SIZE;r++) if(puzzle[r][c]===n) return true; return false; }
-function inBox(r,c,n){
-  const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-  for(let rr=br;rr<br+3;rr++) for(let cc=bc;cc<bc+3;cc++) if(puzzle[rr][cc]===n) return true;
-  return false;
-}
-function computeCandidatesFor(r,c){
-  if(puzzle[r][c]!==0) return new Set();
-  const s=new Set();
-  for(let n=1;n<=9;n++){ if(!inRow(r,n)&&!inCol(c,n)&&!inBox(r,c,n)) s.add(n);}
-  return s;
-}
-function computeAllCandidates(){ for(let r=0;r<SIZE;r++){for(let c=0;c<SIZE;c++){candidates[r][c]=computeCandidatesFor(r,c);}} }
+function inRow(r,n){ return puzzle[r].includes(n);}
+function inCol(c,n){ for(let r=0;r<SIZE;r++) if(puzzle[r][c]===n) return true; return false;}
+function inBox(r,c,n){ const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3; for(let rr=br;rr<br+3;rr++) for(let cc=bc;cc<bc+3;cc++) if(puzzle[rr][cc]===n) return true; return false;}
+function computeCandidatesFor(r,c){ if(puzzle[r][c]!==0) return new Set(); const s=new Set(); for(let n=1;n<=9;n++) if(!inRow(r,n)&&!inCol(c,n)&&!inBox(r,c,n)) s.add(n); return s;}
+function computeAllCandidates(){ for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) candidates[r][c]=computeCandidatesFor(r,c); }
 
 function cellId(r,c){ return `cell-${r}-${c}`; }
 
@@ -185,7 +175,7 @@ function renderBoard(){
       const cand=document.createElement('div');
       cand.className='candidates';
       cand.style.display=puzzle[r][c]===0?'grid':'none';
-      for(let i=0;i<9;i++){const slot=document.createElement('div'); slot.className='cand-slot'; slot.dataset.pos=i+1; slot.textContent=''; cand.appendChild(slot);}
+      for(let i=0;i<9;i++){ const slot=document.createElement('div'); slot.className='cand-slot'; slot.dataset.pos=i+1; slot.textContent=''; cand.appendChild(slot);}
       cell.appendChild(cand);
       cell.addEventListener('click',()=>{focusCell(r,c);});
       cell.addEventListener('keydown',(ev)=>{handleKey(ev,r,c);});
@@ -207,7 +197,7 @@ function updateCandidatesDisplay(){
       const candDiv=el.querySelector('.candidates');
       const val=el.querySelector('.val');
       if(puzzle[r][c]!==0){ candDiv.style.display='none'; val.style.display='block'; val.textContent=puzzle[r][c]; }
-      else{ candDiv.style.display='grid'; val.textContent=''; const slots=candDiv.querySelectorAll('.cand-slot'); const setToShow=autoCandidates?candidates[r][c]:candidates[r][c]; for(let i=0;i<9;i++){ slots[i].textContent=setToShow.has(i+1)?i+1:''; } }
+      else{ candDiv.style.display='grid'; val.textContent=''; const slots=candDiv.querySelectorAll('.cand-slot'); for(let i=0;i<9;i++){ slots[i].textContent=candidates[r][c].has(i+1)?i+1:''; } }
       if(given[r][c]) el.classList.add('given'); else el.classList.remove('given');
     }
   }
@@ -215,10 +205,10 @@ function updateCandidatesDisplay(){
 
 function setValue(r,c,n,options={fromPad:false,forceValue:false}){
   if(given[r][c]){ setStatus('Cannot change a given cell',true); return; }
-  if(n===0){ puzzle[r][c]=0; if(autoCandidates) computeAllCandidates(); updateCandidatesDisplay(); setStatus('Cell cleared'); saveBoard(); return; }
-  if(candidateMode&&!autoCandidates&&!options.forceValue){ const set=candidates[r][c]; if(set.has(n)) set.delete(n); else set.add(n); updateCandidatesDisplay(); setStatus('Toggled candidate '+n); saveBoard(); return; }
+  if(n===0){ puzzle[r][c]=0; computeAllCandidates(); updateCandidatesDisplay(); setStatus('Cell cleared'); saveBoard(); return; }
+  if(candidateMode&&!autoCandidates&&!options.forceValue){ const set=candidates[r][c]; if(set.has(n)) set.delete(n); else set.add(n); computeAllCandidates(); updateCandidatesDisplay(); setStatus('Toggled candidate '+n); saveBoard(); return; }
   puzzle[r][c]=n;
-  if(autoCandidates) computeAllCandidates();
+  computeAllCandidates();
   updateCandidatesDisplay();
   setStatus('Placed '+n);
   saveBoard();
@@ -226,7 +216,7 @@ function setValue(r,c,n,options={fromPad:false,forceValue:false}){
 
 function handleKey(ev,r,c){
   if(ev.code==='Space'){ ev.preventDefault(); toggleCandidateMode(); return; }
-  if(ev.key>='1'&&ev.key<='9'){ ev.preventDefault(); const n=parseInt(ev.key,10); if(candidateMode&&!autoCandidates){ const set=candidates[r][c]; if(set.has(n)) set.delete(n); else set.add(n); updateCandidatesDisplay(); setStatus('Toggled candidate '+n); saveBoard(); } else { setValue(r,c,n,{fromPad:false}); } return; }
+  if(ev.key>='1'&&ev.key<='9'){ ev.preventDefault(); const n=parseInt(ev.key,10); setValue(r,c,n); return; }
   if(ev.key==='Backspace'||ev.key==='Delete'||ev.key==='0'){ ev.preventDefault(); setValue(r,c,0); return; }
   if(ev.key==='ArrowUp'){ ev.preventDefault(); focusCell((r+8)%9,c); return; }
   if(ev.key==='ArrowDown'){ ev.preventDefault(); focusCell((r+1)%9,c); return; }
@@ -234,14 +224,14 @@ function handleKey(ev,r,c){
   if(ev.key==='ArrowRight'){ ev.preventDefault(); focusCell(r,(c+1)%9); return; }
 }
 
-function toggleCandidateMode(){ candidateMode=!candidateMode; candidateStatusEl.textContent=candidateMode?'ON':'OFF'; candidateStatusEl.style.background=candidateMode?'rgba(6,182,212,0.06)':'transparent'; candidateStatusEl.style.color=candidateMode?'#9bf0f8':''; setStatus('Candidate mode '+(candidateMode?'ON':'OFF')); }
-function toggleAutoCandidates(){ autoCandidates=!autoCandidates; autoStatusEl.textContent=autoCandidates?'ON':'OFF'; autoStatusEl.style.background=autoCandidates?'rgba(99,102,241,0.06)':'transparent'; autoStatusEl.style.color=autoCandidates?'#cfe0ff':''; autoCandBtn.textContent=autoCandidates?'Disable auto-candidates':'Enable auto-candidates'; if(autoCandidates) computeAllCandidates(); updateCandidatesDisplay(); setStatus('Auto-candidates '+(autoCandidates?'enabled':'disabled')); saveBoard(); }
+function toggleCandidateMode(){ candidateMode=!candidateMode; candidateStatusEl.textContent=candidateMode?'ON':'OFF'; candidateStatusEl.style.background=candidateMode?'rgba(6,182,212,0.06)':'transparent'; candidateStatusEl.style.color=candidateMode?'#9bf0f8':''; setStatus('Candidate mode '+(candidateMode?'ON':'OFF')); saveBoard(); }
+function toggleAutoCandidates(){ autoCandidates=!autoCandidates; autoStatusEl.textContent=autoCandidates?'ON':'OFF'; autoStatusEl.style.background=autoCandidates?'rgba(99,102,241,0.06)':'transparent'; autoStatusEl.style.color=autoCandidates?'#cfe0ff':''; autoCandBtn.textContent=autoCandidates?'Disable auto-candidates':'Enable auto-candidates'; computeAllCandidates(); updateCandidatesDisplay(); setStatus('Auto-candidates '+(autoCandidates?'enabled':'disabled')); saveBoard(); }
 
 document.addEventListener('keydown',(ev)=>{ const active=document.activeElement; if(ev.code==='Space'&&(active.tagName!=='INPUT'&&active.tagName!=='TEXTAREA'&&active.tagName!=='SELECT')){ ev.preventDefault(); toggleCandidateMode(); } });
 toggleDifficultyBtn.addEventListener('click',()=>{ if(difficultyContainer.classList.contains('hidden')){ difficultyContainer.classList.remove('hidden'); toggleDifficultyBtn.textContent='Hide difficulty'; } else { difficultyContainer.classList.add('hidden'); toggleDifficultyBtn.textContent='Show difficulty'; } });
 toggleCandidateBtn.addEventListener('click',()=>toggleCandidateMode());
 autoCandBtn.addEventListener('click',()=>toggleAutoCandidates());
-numPad.addEventListener('click',(ev)=>{ const btn=ev.target.closest('button'); if(!btn) return; if(btn.classList.contains('num')) setValue(selected.r,selected.c,parseInt(btn.dataset.n,10),{fromPad:true}); else if(btn.id==='erase-btn') setValue(selected.r,selected.c,0); else if(btn.id==='reset-btn') resetBoard(); else if(btn.id==='hint-btn') provideHint(); });
+numPad.addEventListener('click',(ev)=>{ const btn=ev.target.closest('button'); if(!btn) return; if(btn.classList.contains('num')) setValue(selected.r,selected.c,parseInt(btn.dataset.n,10)); else if(btn.id==='erase-btn') setValue(selected.r,selected.c,0); else if(btn.id==='reset-btn') resetBoard(); else if(btn.id==='hint-btn') provideHint(); });
 
 function setStatus(msg,isError=false){ statusEl.textContent=msg; statusEl.style.color=isError?'#ff9b9b':'#aee5ff'; }
 
