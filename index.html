@@ -1,250 +1,178 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Sudoku</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Sudoku Game</title>
 <style>
-:root{
-  --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8;
-  --cell-bg:#0b1220; --prefill:#111827; --given:#94a3b8;
-}
-html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-body{background:linear-gradient(180deg,#081124 0%, #06111b 100%);color:#e6eef6;display:flex;align-items:flex-start;justify-content:center;padding:28px;}
-.app{width:980px;max-width:96%;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(2,6,23,0.7);}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-h1{font-size:18px;margin:0;color:#e6f3fb}
-.controls{display:flex;gap:8px;align-items:center}
-button,select{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:8px 10px;border-radius:8px;cursor:pointer}
-button:hover,select:hover{border-color:rgba(255,255,255,0.12)}
-.toggle{display:flex;align-items:center;gap:8px}
-.indicator{padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);color:var(--muted);font-size:13px}
-.board-wrap{display:flex;gap:20px}
-.board{display:grid;grid-template-columns:repeat(9,48px);grid-template-rows:repeat(9,48px);gap:2px;padding:12px;background:linear-gradient(180deg,#061020,#06101a);border-radius:12px}
-.cell{width:48px;height:48px;background:var(--cell-bg);display:flex;align-items:center;justify-content:center;position:relative;border-radius:6px;cursor:pointer;user-select:none}
-.cell.given{background:linear-gradient(180deg,#0b1b2a,#081019);color:var(--given);font-weight:700}
-.cell.focus{outline:3px solid rgba(6,182,212,0.12)}
-.cell .val{font-size:20px;line-height:1}
-.cell .candidates{position:absolute;inset:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);font-size:9px;place-items:center;color:var(--muted)}
-.controls-col{display:flex;flex-direction:column;gap:12px;min-width:220px}
-.num-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.num-pad button{padding:10px;border-radius:8px;font-weight:600}
-.btn-primary{background:linear-gradient(90deg,var(--accent),#3b82f6);border:none;color:#04202a}
-.small{font-size:13px;color:var(--muted)}
-.difficulty{display:flex;gap:8px;align-items:center}
-.hidden{display:none}
-.meta{font-size:13px;color:var(--muted);margin-top:10px}
-.footer{margin-top:14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
-.danger{color:#ffb4b4}
-.board .thick-right{box-shadow:inset -4px 0 0 rgba(255,255,255,0.02)}
-.board .thick-bottom{box-shadow:inset 0 -4px 0 rgba(255,255,255,0.02)}
-footer small{color:var(--muted)}
-@media (max-width:820px){ .board{transform:scale(0.9);transform-origin:left top} .controls-col{min-width:160px} }
+  body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: #f7f7f7;
+  }
+  h1 { margin-bottom: 20px; }
+  table { border-collapse: collapse; }
+  td {
+    border: 1px solid #000;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  input {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    font-size: 18px;
+    border: none;
+  }
+  td:nth-child(3n) { border-right: 2px solid #000; }
+  tr:nth-child(3n) td { border-bottom: 2px solid #000; }
+  .prefilled input {
+    font-weight: bold;
+    background-color: #e0e0e0;
+  }
+  button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+  select { font-size: 16px; margin-bottom: 10px; }
 </style>
 </head>
 <body>
-<div class="app" role="application" aria-label="Sudoku game">
-  <header>
-    <div>
-      <h1>Sudoku — Browser Game</h1>
-      <div class="small">Candidate mode: <span id="candidate-status" class="indicator">OFF</span> · Auto-candidates: <span id="auto-status" class="indicator">OFF</span></div>
-    </div>
-    <div class="controls">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="toggle-difficulty-btn">Show difficulty</button>
-        <div id="difficulty-container" class="hidden difficulty">
-          <label class="small" for="difficulty-select">Difficulty:</label>
-          <select id="difficulty-select">
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-            <option value="evil">Evil</option>
-          </select>
-        </div>
-      </div>
-      <div class="toggle">
-        <button id="toggle-candidate-btn" title="Toggle candidate mode (SPACE)">Toggle candidate (SPACE)</button>
-        <button id="auto-cand-btn" title="Enable/disable auto-candidates">Enable auto-candidates</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="board-wrap">
-    <div>
-      <div id="board" class="board" role="grid" aria-label="Sudoku board"></div>
-      <div class="meta">Tip: press <kbd>SPACE</kbd> to toggle candidate mode. Click a cell, press 1–9 to enter. Press Backspace/Delete to clear. Use number pad below to enter selected cell.</div>
-    </div>
-
-    <aside class="controls-col">
-      <div>
-        <div class="small">Number pad</div>
-        <div class="num-pad" id="num-pad">
-          <button class="btn num" data-n="1">1</button>
-          <button class="btn num" data-n="2">2</button>
-          <button class="btn num" data-n="3">3</button>
-          <button class="btn num" data-n="4">4</button>
-          <button class="btn num" data-n="5">5</button>
-          <button class="btn num" data-n="6">6</button>
-          <button class="btn num" data-n="7">7</button>
-          <button class="btn num" data-n="8">8</button>
-          <button class="btn num" data-n="9">9</button>
-          <button id="erase-btn">Erase</button>
-          <button id="hint-btn">Hint</button>
-          <button id="reset-btn" class="btn-primary">New / Reset</button>
-        </div>
-      </div>
-
-      <div style="margin-top:12px">
-        <div class="small">Commit info from provided URL</div>
-        <div id="commit-info" class="indicator" style="white-space:pre-line;min-height:56px">Loading commit info…</div>
-        <div class="small" style="margin-top:6px;color:var(--muted)">Source: <code>https://github.com/BoredGuy/sudoku/blob/d56c161a3c5ae126de5ff51a11d04b388a8f580e/index.html</code></div>
-      </div>
-
-      <div style="margin-top:12px">
-        <div class="small">Status</div>
-        <div id="status" class="indicator">Ready</div>
-      </div>
-    </aside>
-  </main>
-
-  <div class="footer">
-    <div><small>Live candidate updates • Persistent board • Candidate mode toggled by SPACE</small></div>
-    <div><small>Press <kbd>Space</kbd> to toggle candidate mode</small></div>
-  </div>
-</div>
+<h1>Dynamic Sudoku Game</h1>
+<label for="difficulty">Select Difficulty:</label>
+<select id="difficulty">
+  <option value="easy">Easy</option>
+  <option value="medium">Medium</option>
+  <option value="hard">Hard</option>
+</select>
+<button onclick="startGame()">New Game</button>
+<table id="sudoku-grid"></table>
+<button onclick="checkSolution()">Check Solution</button>
 
 <script>
-const SIZE=9;
-const BOX=3;
-const samplePuzzle=[
-  [5,3,0,0,7,0,0,0,0],
-  [6,0,0,1,9,5,0,0,0],
-  [0,9,8,0,0,0,0,6,0],
-  [8,0,0,0,6,0,0,0,3],
-  [4,0,0,8,0,3,0,0,1],
-  [7,0,0,0,2,0,0,0,6],
-  [0,6,0,0,0,0,2,8,0],
-  [0,0,0,4,1,9,0,0,5],
-  [0,0,0,0,8,0,0,7,9]
-];
+let solution = [];
 
-let puzzle=JSON.parse(JSON.stringify(samplePuzzle));
-let given=Array.from({length:SIZE},(_,r)=>Array.from({length:SIZE},(_,c)=>puzzle[r][c]!==0));
-let selected={r:0,c:0};
-let candidateMode=false;
-let autoCandidates=false;
-let candidates=Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>new Set()));
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
-const boardEl=document.getElementById('board');
-const candidateStatusEl=document.getElementById('candidate-status');
-const autoStatusEl=document.getElementById('auto-status');
-const statusEl=document.getElementById('status');
-const commitInfoEl=document.getElementById('commit-info');
-const toggleDifficultyBtn=document.getElementById('toggle-difficulty-btn');
-const difficultyContainer=document.getElementById('difficulty-container');
-const toggleCandidateBtn=document.getElementById('toggle-candidate-btn');
-const autoCandBtn=document.getElementById('auto-cand-btn');
-const eraseBtn=document.getElementById('erase-btn');
-const resetBtn=document.getElementById('reset-btn');
-const numPad=document.getElementById('num-pad');
+function generateBoard() {
+  let board = Array.from({length: 9}, () => Array(9).fill(0));
 
-function inRow(r,n){ return puzzle[r].includes(n);}
-function inCol(c,n){ for(let r=0;r<SIZE;r++) if(puzzle[r][c]===n) return true; return false;}
-function inBox(r,c,n){ const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3; for(let rr=br;rr<br+3;rr++) for(let cc=bc;cc<bc+3;cc++) if(puzzle[rr][cc]===n) return true; return false;}
-function computeCandidatesFor(r,c){ if(puzzle[r][c]!==0) return new Set(); const s=new Set(); for(let n=1;n<=9;n++) if(!inRow(r,n)&&!inCol(c,n)&&!inBox(r,c,n)) s.add(n); return s;}
-function computeAllCandidates(){ for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) candidates[r][c]=computeCandidatesFor(r,c); }
+  function isValid(num, row, col) {
+    for(let i=0;i<9;i++) {
+      if(board[row][i] === num || board[i][col] === num) return false;
+    }
+    const startRow = Math.floor(row/3)*3;
+    const startCol = Math.floor(col/3)*3;
+    for(let i=0;i<3;i++){
+      for(let j=0;j<3;j++){
+        if(board[startRow+i][startCol+j] === num) return false;
+      }
+    }
+    return true;
+  }
 
-function cellId(r,c){ return `cell-${r}-${c}`; }
+  function fillBoard() {
+    for(let row=0;row<9;row++){
+      for(let col=0;col<9;col++){
+        if(board[row][col] === 0) {
+          let numbers = shuffle([1,2,3,4,5,6,7,8,9]);
+          for(let num of numbers){
+            if(isValid(num,row,col)){
+              board[row][col] = num;
+              if(fillBoard()) return true;
+              board[row][col] = 0;
+            }
+          }
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 
-function renderBoard(){
-  boardEl.innerHTML='';
-  for(let r=0;r<SIZE;r++){
-    for(let c=0;c<SIZE;c++){
-      const cell=document.createElement('div');
-      cell.className='cell';
-      if((c+1)%3===0&&c!==SIZE-1) cell.classList.add('thick-right');
-      if((r+1)%3===0&&r!==SIZE-1) cell.classList.add('thick-bottom');
-      cell.id=cellId(r,c);
-      cell.dataset.r=r; cell.dataset.c=c;
-      cell.tabIndex=0;
-      if(given[r][c]) cell.classList.add('given');
-      const val=document.createElement('div');
-      val.className='val';
-      val.textContent=puzzle[r][c]===0?'':puzzle[r][c];
-      cell.appendChild(val);
-      const cand=document.createElement('div');
-      cand.className='candidates';
-      cand.style.display=puzzle[r][c]===0?'grid':'none';
-      for(let i=0;i<9;i++){ const slot=document.createElement('div'); slot.className='cand-slot'; slot.dataset.pos=i+1; slot.textContent=''; cand.appendChild(slot);}
-      cell.appendChild(cand);
-      cell.addEventListener('click',()=>{focusCell(r,c);});
-      cell.addEventListener('keydown',(ev)=>{handleKey(ev,r,c);});
-      boardEl.appendChild(cell);
+  fillBoard();
+  return board;
+}
+
+function removeNumbers(board, difficulty) {
+  let attempts;
+  if(difficulty === "easy") attempts = 35;
+  else if(difficulty === "medium") attempts = 45;
+  else attempts = 55;
+
+  while(attempts > 0){
+    let row = Math.floor(Math.random()*9);
+    let col = Math.floor(Math.random()*9);
+    if(board[row][col] !== 0){
+      board[row][col] = 0;
+      attempts--;
     }
   }
-  updateCandidatesDisplay();
-  updateSelectionVisual();
+  return board;
 }
 
-function focusCell(r,c){ selected={r,c}; updateSelectionVisual(); const el=document.getElementById(cellId(r,c)); if(el) el.focus({preventScroll:true}); }
-function updateSelectionVisual(){ document.querySelectorAll('.cell').forEach(el=>el.classList.remove('focus')); const el=document.getElementById(cellId(selected.r,selected.c)); if(el) el.classList.add('focus'); }
-
-function updateCandidatesDisplay(){
-  if(autoCandidates) computeAllCandidates();
-  for(let r=0;r<SIZE;r++){
-    for(let c=0;c<SIZE;c++){
-      const el=document.getElementById(cellId(r,c)); if(!el) continue;
-      const candDiv=el.querySelector('.candidates');
-      const val=el.querySelector('.val');
-      if(puzzle[r][c]!==0){ candDiv.style.display='none'; val.style.display='block'; val.textContent=puzzle[r][c]; }
-      else{ candDiv.style.display='grid'; val.textContent=''; const slots=candDiv.querySelectorAll('.cand-slot'); for(let i=0;i<9;i++){ slots[i].textContent=candidates[r][c].has(i+1)?i+1:''; } }
-      if(given[r][c]) el.classList.add('given'); else el.classList.remove('given');
+function createGrid(puzzle) {
+  const table = document.getElementById('sudoku-grid');
+  table.innerHTML = "";
+  for(let i=0;i<9;i++){
+    const row = document.createElement('tr');
+    for(let j=0;j<9;j++){
+      const cell = document.createElement('td');
+      if(puzzle[i][j] !== 0){
+        cell.classList.add('prefilled');
+        const input = document.createElement('input');
+        input.value = puzzle[i][j];
+        input.disabled = true;
+        cell.appendChild(input);
+      } else {
+        const input = document.createElement('input');
+        input.setAttribute('type','number');
+        input.setAttribute('min','1');
+        input.setAttribute('max','9');
+        cell.appendChild(input);
+      }
+      row.appendChild(cell);
     }
+    table.appendChild(row);
   }
 }
 
-function setValue(r,c,n,options={fromPad:false,forceValue:false}){
-  if(given[r][c]){ setStatus('Cannot change a given cell',true); return; }
-  if(n===0){ puzzle[r][c]=0; computeAllCandidates(); updateCandidatesDisplay(); setStatus('Cell cleared'); saveBoard(); return; }
-  if(candidateMode&&!autoCandidates&&!options.forceValue){ const set=candidates[r][c]; if(set.has(n)) set.delete(n); else set.add(n); computeAllCandidates(); updateCandidatesDisplay(); setStatus('Toggled candidate '+n); saveBoard(); return; }
-  puzzle[r][c]=n;
-  computeAllCandidates();
-  updateCandidatesDisplay();
-  setStatus('Placed '+n);
-  saveBoard();
+function startGame(){
+  const difficulty = document.getElementById('difficulty').value;
+  solution = generateBoard();
+  let puzzle = JSON.parse(JSON.stringify(solution));
+  puzzle = removeNumbers(puzzle, difficulty);
+  createGrid(puzzle);
 }
 
-function handleKey(ev,r,c){
-  if(ev.code==='Space'){ ev.preventDefault(); toggleCandidateMode(); return; }
-  if(ev.key>='1'&&ev.key<='9'){ ev.preventDefault(); const n=parseInt(ev.key,10); setValue(r,c,n); return; }
-  if(ev.key==='Backspace'||ev.key==='Delete'||ev.key==='0'){ ev.preventDefault(); setValue(r,c,0); return; }
-  if(ev.key==='ArrowUp'){ ev.preventDefault(); focusCell((r+8)%9,c); return; }
-  if(ev.key==='ArrowDown'){ ev.preventDefault(); focusCell((r+1)%9,c); return; }
-  if(ev.key==='ArrowLeft'){ ev.preventDefault(); focusCell(r,(c+8)%9); return; }
-  if(ev.key==='ArrowRight'){ ev.preventDefault(); focusCell(r,(c+1)%9); return; }
+function checkSolution(){
+  const table = document.getElementById('sudoku-grid');
+  for(let i=0;i<9;i++){
+    for(let j=0;j<9;j++){
+      const input = table.rows[i].cells[j].querySelector('input');
+      if(parseInt(input.value) !== solution[i][j]){
+        alert("There are mistakes. Keep trying!");
+        return;
+      }
+    }
+  }
+  alert("Congratulations! You solved the puzzle!");
 }
 
-function toggleCandidateMode(){ candidateMode=!candidateMode; candidateStatusEl.textContent=candidateMode?'ON':'OFF'; setStatus('Candidate mode '+(candidateMode?'ON':'OFF')); saveBoard(); }
-function toggleAutoCandidates(){ autoCandidates=!autoCandidates; autoStatusEl.textContent=autoCandidates?'ON':'OFF'; autoCandBtn.textContent=autoCandidates?'Disable auto-candidates':'Enable auto-candidates'; computeAllCandidates(); updateCandidatesDisplay(); setStatus('Auto-candidates '+(autoCandidates?'enabled':'disabled')); saveBoard(); }
-
-document.addEventListener('keydown',(ev)=>{ const active=document.activeElement; if(ev.code==='Space'&&(active.tagName!=='INPUT'&&active.tagName!=='TEXTAREA'&&active.tagName!=='SELECT')){ ev.preventDefault(); toggleCandidateMode(); } });
-toggleDifficultyBtn.addEventListener('click',()=>{ difficultyContainer.classList.toggle('hidden'); toggleDifficultyBtn.textContent=difficultyContainer.classList.contains('hidden')?'Show difficulty':'Hide difficulty'; });
-toggleCandidateBtn.addEventListener('click',()=>toggleCandidateMode());
-autoCandBtn.addEventListener('click',()=>toggleAutoCandidates());
-numPad.addEventListener('click',(ev)=>{ const btn=ev.target.closest('button'); if(!btn) return; if(btn.classList.contains('num')) setValue(selected.r,selected.c,parseInt(btn.dataset.n,10)); else if(btn.id==='erase-btn') setValue(selected.r,selected.c,0); else if(btn.id==='reset-btn') resetBoard(); else if(btn.id==='hint-btn') provideHint(); });
-
-function setStatus(msg,isError=false){ statusEl.textContent=msg; statusEl.style.color=isError?'#ff9b9b':'#aee5ff'; }
-
-function saveBoard(){ const data={puzzle,pivot:{r:selected.r,c:selected.c},candidateMode,autoCandidates,candidates:candidates.map(row=>row.map(s=>[...s]))}; localStorage.setItem('sudokuBoard',JSON.stringify(data)); }
-function loadBoard(){ const data=localStorage.getItem('sudokuBoard'); if(!data) return false; try{ const obj=JSON.parse(data); puzzle=obj.puzzle; selected=obj.pivot; candidateMode=obj.candidateMode; autoCandidates=obj.autoCandidates; candidates=obj.candidates.map(row=>row.map(a=>new Set(a))); candidateStatusEl.textContent=candidateMode?'ON':'OFF'; autoStatusEl.textContent=autoCandidates?'ON':'OFF'; updateCandidatesDisplay(); updateSelectionVisual(); return true; } catch(e){ console.error(e); return false; } }
-function resetBoard(){ puzzle=JSON.parse(JSON.stringify(samplePuzzle)); for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) given[r][c]=puzzle[r][c]!==0; candidates=Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>new Set())); selected={r:0,c:0}; candidateMode=false; autoCandidates=false; candidateStatusEl.textContent='OFF'; autoStatusEl.textContent='OFF'; renderBoard(); setStatus('Board reset'); saveBoard(); }
-function provideHint(){ for(let r=0;r<SIZE;r++){for(let c=0;c<SIZE;c++){if(puzzle[r][c]===0){ const set=computeCandidatesFor(r,c); if(set.size>0){ const val=[...set][0]; setValue(r,c,val,{forceValue:true}); setStatus('Hint: placed '+val); return;}}} setStatus('No hints available',true); }
-
-async function fetchCommitInfo(){ try{ const url='https://api.github.com/repos/BoredGuy/sudoku/commits/main'; const res=await fetch(url); const json=await res.json(); commitInfoEl.textContent='Commit: '+json.sha+'\nAuthor: '+json.commit.author.name+'\nDate: '+new Date(json.commit.author.date).toLocaleString('en-GB',{timeZone:'CET'})+'\nMessage: '+json.commit.message; } catch(e){ commitInfoEl.textContent='Failed to fetch commit info'; } }
-
-renderBoard();
-if(!loadBoard()) computeAllCandidates();
-fetchCommitInfo();
+// Start initial game
+startGame();
 </script>
 </body>
 </html>
