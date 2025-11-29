@@ -3,539 +3,556 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bauhaus Sudoku — Single File</title>
+<title>Sudoku — Browser Game (Regenerated)</title>
 <style>
-  /* Bauhaus / Swiss-style minimal design */
   :root{
-    --bg:#f5f6f7;
-    --panel:#ffffff;
-    --accent:#0b76ef;
-    --muted:#9098a3;
-    --line:#e6e8eb;
-    --cell:#fbfcfd;
-    --pencil:#8a8f99;
-    font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial;
+    --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8;
+    --cell-bg:#0b1220; --prefill:#111827; --given:#94a3b8;
   }
-  html,body{height:100%;margin:0;background:var(--bg);color:#111}
-  .app{
-    max-width:980px;margin:28px auto;padding:28px;background:linear-gradient(0deg,rgba(255,255,255,0.8),rgba(255,255,255,0.8));
-    border-radius:12px;box-shadow:0 8px 30px rgba(8,20,40,0.06);
-    display:grid;grid-template-columns:360px 1fr;gap:24px;
-  }
-
-  /* Left column controls */
-  .panel{background:var(--panel);padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(12,18,30,0.03)}
-  h1{margin:0;font-size:20px;letter-spacing:0.6px}
-  .controls{margin-top:12px;display:flex;flex-direction:column;gap:10px}
-  .row{display:flex;gap:8px;align-items:center}
-  button,select{background:none;border:1px solid var(--line);padding:8px 10px;border-radius:10px;font-weight:600;cursor:pointer}
-  button.primary{background:var(--accent);color:white;border-color:transparent}
-  .muted{color:var(--muted);font-size:13px}
-  label.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-  .hint{font-size:13px;color:var(--muted)}
-
-  /* Sudoku grid */
-  .board-wrap{display:flex;flex-direction:column;gap:12px}
-  .board{
-    display:grid;grid-template-columns:repeat(9,1fr);gap:0;border-radius:8px;
-    width:720px;height:720px;box-shadow:0 10px 40px rgba(10,20,40,0.06);
-    background:linear-gradient(180deg,#fff,#fbfdff);
-    border:6px solid #f0f2f5;padding:8px;
-  }
-  .cell{
-    border:1px solid var(--line);background:var(--cell);display:flex;align-items:center;justify-content:center;
-    position:relative;font-size:22px;font-weight:600;user-select:none;
-  }
-  .cell.given{background:#eef6ff;color:#1b2430}
-  .cell.selected{outline:3px solid rgba(11,118,239,0.12);z-index:2}
-  .cell.conflict{background:#ffecec}
-  .small{
-    position:absolute;inset:6px;font-size:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;color:var(--pencil);
-  }
-  .small span{display:flex;align-items:center;justify-content:center;opacity:0.95}
-  .bigval{font-size:28px}
-  /* thick box lines */
-  .board .cell:nth-child(3n){border-right:2px solid #d8dade}
-  .board .cell:nth-child(n+19):nth-child(-n+27), .board .cell:nth-child(n+46):nth-child(-n+54), .board .cell:nth-child(n+73):nth-child(-n+81){
-    border-bottom:2px solid #d8dade;
-  }
-  .board .cell:nth-child(9n+1){border-left:2px solid #d8dade}
-  /* footer area for commit display */
-  .commit{font-size:13px;color:var(--muted);margin-top:12px;padding:10px;background:#f7f9fb;border-radius:8px}
-  code{background:#f2f4f7;padding:4px 6px;border-radius:6px;font-family:monospace;font-size:12px}
-  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .help{font-size:13px;color:var(--muted)}
-  .flex{display:flex;gap:8px;align-items:center}
+  html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{background:linear-gradient(180deg,#081124 0%, #06111b 100%);color:#e6eef6;display:flex;align-items:flex-start;justify-content:center;padding:28px;}
+  .app{width:980px;max-width:96%;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(2,6,23,0.7);}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  h1{font-size:18px;margin:0;color:#e6f3fb}
+  .controls{display:flex;gap:8px;align-items:center}
+  button,select{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:8px 10px;border-radius:8px;cursor:pointer}
+  button:hover,select:hover{border-color:rgba(255,255,255,0.12)}
+  .toggle{display:flex;align-items:center;gap:8px}
+  .indicator{padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);color:var(--muted);font-size:13px}
+  .board-wrap{display:flex;gap:20px}
+  .board{display:grid;grid-template-columns:repeat(9,48px);grid-template-rows:repeat(9,48px);gap:2px;padding:12px;background:linear-gradient(180deg,#061020,#06101a);border-radius:12px}
+  .cell{width:48px;height:48px;background:var(--cell-bg);display:flex;align-items:center;justify-content:center;position:relative;border-radius:6px;cursor:pointer;user-select:none}
+  .cell.given{background:linear-gradient(180deg,#0b1b2a,#081019);color:var(--given);font-weight:700}
+  .cell.focus{outline:3px solid rgba(6,182,212,0.12)}
+  .cell .val{font-size:20px;line-height:1}
+  .cell .candidates{position:absolute;inset:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);font-size:9px;place-items:center;color:var(--muted)}
+  .controls-col{display:flex;flex-direction:column;gap:12px;min-width:220px}
+  .num-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .num-pad button{padding:10px;border-radius:8px;font-weight:600}
+  .btn-primary{background:linear-gradient(90deg,var(--accent),#3b82f6);border:none;color:#04202a}
+  .small{font-size:13px;color:var(--muted)}
+  .difficulty{display:flex;gap:8px;align-items:center}
   .hidden{display:none}
-  footer.small{font-size:12px;color:var(--muted);margin-top:8px}
-  .linklike{color:var(--accent);text-decoration:underline;cursor:pointer}
+  .meta{font-size:13px;color:var(--muted);margin-top:10px}
+  .footer{margin-top:14px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .danger{color:#ffb4b4}
+  .board .thick-right{box-shadow:inset -4px 0 0 rgba(255,255,255,0.02)}
+  .board .thick-bottom{box-shadow:inset 0 -4px 0 rgba(255,255,255,0.02)}
+  footer small{color:var(--muted)}
+  /* responsive */
+  @media (max-width:820px){ .board{transform:scale(0.9);transform-origin:left top} .controls-col{min-width:160px} }
 </style>
 </head>
 <body>
-<div class="app" role="application" aria-label="Bauhaus Sudoku">
-  <div class="panel">
-    <div class="topbar">
-      <h1>Bauhaus Sudoku</h1>
-      <div class="hint">SPACE toggles candidates • 1–9 to enter</div>
+<div class="app" role="application" aria-label="Sudoku game">
+  <header>
+    <div>
+      <h1>Sudoku — Browser Game</h1>
+      <div class="small">Candidate mode: <span id="candidate-status" class="indicator">OFF</span> · Auto-candidates: <span id="auto-status" class="indicator">OFF</span></div>
+    </div>
+    <div class="controls">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="toggle-difficulty-btn">Show difficulty</button>
+        <div id="difficulty-container" class="hidden difficulty">
+          <label class="small" for="difficulty-select">Difficulty:</label>
+          <select id="difficulty-select">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+            <option value="evil">Evil</option>
+          </select>
+        </div>
+      </div>
+      <div class="toggle">
+        <button id="toggle-candidate-btn" title="Toggle candidate mode (SPACE)">Toggle candidate (SPACE)</button>
+        <button id="auto-cand-btn" title="Enable/disable auto-candidates">Enable auto-candidates</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="board-wrap">
+    <div>
+      <div id="board" class="board" role="grid" aria-label="Sudoku board"></div>
+      <div class="meta">Tip: press <kbd>SPACE</kbd> to toggle candidate mode. Click a cell, press 1–9 to enter. Press Backspace/Delete to clear. Use number pad below to enter selected cell.</div>
     </div>
 
-    <div class="controls">
-      <div class="row">
-        <button id="newBtn" class="primary">New puzzle</button>
-        <button id="solveBtn">Solve (hint)</button>
-      </div>
-
-      <div class="row">
-        <button id="toggleDifficulty">Show difficulty</button>
-        <!-- difficulty selector hidden at start -->
-        <select id="difficulty" class="hidden" aria-label="Difficulty selector">
-          <option value="easy">Easy</option>
-          <option value="medium" selected>Medium</option>
-          <option value="hard">Hard</option>
-          <option value="insane">Insane</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <label class="switch">
-          <input type="checkbox" id="autoCandidates" />
-          <span id="autoLabel">Auto-candidates (off)</span>
-        </label>
-        <button id="autoBtn">Enable auto-candidates</button>
-      </div>
-
-      <div class="row">
-        <button id="clearBtn">Clear selected</button>
-        <button id="eraseBtn">Erase candidates</button>
-      </div>
-
-      <div class="row">
-        <div class="muted">Candidate mode: <strong id="candState">Off</strong></div>
-      </div>
-
-      <div class="row">
-        <div class="muted">Status: <span id="status">Ready</span></div>
-      </div>
-
-      <div class="row">
-        <div class="muted">Controls</div>
-      </div>
-
-      <div class="row">
-        <div class="help">
-          - Use mouse to select a cell.<br>
-          - Press SPACE to toggle pencil (candidate) mode.<br>
-          - In pencil mode, pressing 1–9 toggles candidate marks.<br>
-          - When auto-candidates are ON, the candidates update automatically.<br>
-          - Entering a normal number never toggles candidate mode (SPACE is the only toggle).
+    <aside class="controls-col">
+      <div>
+        <div class="small">Number pad</div>
+        <div class="num-pad" id="num-pad">
+          <button class="btn num" data-n="1">1</button>
+          <button class="btn num" data-n="2">2</button>
+          <button class="btn num" data-n="3">3</button>
+          <button class="btn num" data-n="4">4</button>
+          <button class="btn num" data-n="5">5</button>
+          <button class="btn num" data-n="6">6</button>
+          <button class="btn num" data-n="7">7</button>
+          <button class="btn num" data-n="8">8</button>
+          <button class="btn num" data-n="9">9</button>
+          <button id="erase-btn">Erase</button>
+          <button id="hint-btn">Hint</button>
+          <button id="reset-btn" class="btn-primary">New / Reset</button>
         </div>
       </div>
 
-      <div style="margin-top:8px" class="commit" id="commitBox">
-        <div style="font-weight:700">Latest commit for <code>index.html@d56c161</code></div>
-        <div id="commitInfo">Fetching commit info…</div>
-        <div class="small muted">(converted to CET / Europe/Berlin)</div>
+      <div style="margin-top:12px">
+        <div class="small">Commit info from provided URL</div>
+        <div id="commit-info" class="indicator" style="white-space:pre-line;min-height:56px">Loading commit info…</div>
+        <div class="small" style="margin-top:6px;color:var(--muted)">Source: <code>https://github.com/BoredGuy/sudoku/blob/d56c161a3c5ae126de5ff51a11d04b388a8f580e/index.html</code></div>
       </div>
 
-      <footer class="small">Generated: single-file HTML — always regenerate full file.</footer>
-    </div>
-  </div>
+      <div style="margin-top:12px">
+        <div class="small">Status</div>
+        <div id="status" class="indicator">Ready</div>
+      </div>
+    </aside>
+  </main>
 
-  <div class="board-wrap">
-    <div id="board" class="board" aria-label="Sudoku board"></div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <div class="muted">Selected: <span id="selPos">none</span></div>
-      <div class="muted">Candidates live: <span id="liveCount">0</span></div>
-      <div style="margin-left:auto"><button id="exportBtn">Export (clipboard)</button></div>
-    </div>
+  <div class="footer">
+    <div><small>Regenerated full HTML • Candidate mode toggled by SPACE • Auto-candidates with dynamic updating</small></div>
+    <div><small>Press <kbd>Space</kbd> to toggle candidate mode</small></div>
   </div>
 </div>
 
 <script>
 /*
- Single-file Sudoku with:
- - SPACE toggles candidate mode
- - Auto-candidate button + checkbox toggles
- - Difficulty selector hidden at start
- - Client-side fetch of commit metadata for the given commit SHA (converted to CET)
- - Always regenerate full HTML hereupon request (we output whole HTML)
+  Sudoku game with:
+  - Difficulty selector hidden on start (toggle shown by button)
+  - Candidate mode toggled with SPACE
+  - Auto-candidate mode with dynamic updating
+  - Button to enable auto-candidate mode
+  - If auto-candidates enabled, entering a normal number does NOT toggle candidate mode
+  - Client-side fetching of commit info for the given blob/commit
 */
 
-// ---------- Utilities ----------
-const byId = id => document.getElementById(id);
-const boardEl = byId('board');
-const ROWS = 9, COLS = 9;
+/* ---------- Basic Sudoku model ---------- */
+const SIZE = 9;
+const BOX = 3;
 
-// State
-let selected = {r: -1, c: -1};
-let candidateMode = false;
-let autoCandidates = false;
-let puzzle = null;      // given numbers (immutable)
-let state = null;       // current numbers (0 empty)
-let candidates = null;  // 9x9 Set of candidates (1..9)
-let givenMask = null;   // boolean 9x9 whether given
-let difficulty = 'medium';
-
-// Initialize empty arrays
-function makeEmptyGrid(val=0){
-  return Array.from({length:9}, ()=>Array.from({length:9}, ()=>val));
-}
-function makeEmptyCandidates(){
-  return Array.from({length:9}, ()=>Array.from({length:9}, ()=>new Set()));
-}
-function rcIndex(r,c){return r*9 + c}
-
-// ---------- Example puzzle loader ----------
-const sampleEasy = [
-  [5,3,0,0,7,0,0,0,0],
-  [6,0,0,1,9,5,0,0,0],
-  [0,9,8,0,0,0,0,6,0],
-  [8,0,0,0,6,0,0,0,3],
-  [4,0,0,8,0,3,0,0,1],
-  [7,0,0,0,2,0,0,0,6],
-  [0,6,0,0,0,0,2,8,0],
-  [0,0,0,4,1,9,0,0,5],
-  [0,0,0,0,8,0,0,7,9],
+// Example puzzle (0 = empty). You can replace or generate puzzles per difficulty later.
+const samplePuzzle = [
+  [5,3,0, 0,7,0, 0,0,0],
+  [6,0,0, 1,9,5, 0,0,0],
+  [0,9,8, 0,0,0, 0,6,0],
+  [8,0,0, 0,6,0, 0,0,3],
+  [4,0,0, 8,0,3, 0,0,1],
+  [7,0,0, 0,2,0, 0,0,6],
+  [0,6,0, 0,0,0, 2,8,0],
+  [0,0,0, 4,1,9, 0,0,5],
+  [0,0,0, 0,8,0, 0,7,9]
 ];
 
-const sampleMedium = [
-  [0,0,0,0,8,0,3,0,0],
-  [6,0,3,0,0,0,0,0,8],
-  [0,9,0,0,0,3,0,4,0],
-  [0,0,0,7,0,5,0,0,0],
-  [0,0,7,0,0,0,6,0,0],
-  [0,0,0,4,0,8,0,0,0],
-  [0,6,0,5,0,0,0,2,0],
-  [8,0,0,0,0,0,7,0,3],
-  [0,0,9,0,1,0,0,0,0],
-];
+let puzzle = JSON.parse(JSON.stringify(samplePuzzle));
+let given = Array.from({length:SIZE}, (_,r) => Array.from({length:SIZE}, (_,c) => puzzle[r][c] !== 0));
+let selected = {r:0,c:0};
+let candidateMode = false; // toggled by SPACE or button
+let autoCandidates = false; // toggled by button
+let candidates = Array.from({length:SIZE}, () => Array.from({length:SIZE}, () => new Set()));
 
-const sampleHard = [
-  [0,0,0,0,0,0,0,0,1],
-  [0,0,0,0,0,3,0,0,0],
-  [0,0,1,0,0,0,0,6,0],
-  [0,0,0,0,0,0,4,0,0],
-  [0,0,0,7,0,0,0,0,0],
-  [0,0,0,0,0,9,0,0,0],
-  [3,0,0,2,0,0,0,0,0],
-  [0,8,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-];
+/* ---------- DOM refs ---------- */
+const boardEl = document.getElementById('board');
+const candidateStatusEl = document.getElementById('candidate-status');
+const autoStatusEl = document.getElementById('auto-status');
+const statusEl = document.getElementById('status');
+const commitInfoEl = document.getElementById('commit-info');
+const toggleDifficultyBtn = document.getElementById('toggle-difficulty-btn');
+const difficultyContainer = document.getElementById('difficulty-container');
+const toggleCandidateBtn = document.getElementById('toggle-candidate-btn');
+const autoCandBtn = document.getElementById('auto-cand-btn');
+const eraseBtn = document.getElementById('erase-btn');
+const resetBtn = document.getElementById('reset-btn');
+const numPad = document.getElementById('num-pad');
 
-// Simple function to clone arrays
-function cloneGrid(g){ return g.map(r=>r.slice()); }
-
-// ---------- Board rendering ----------
-function renderBoard(){
-  boardEl.innerHTML = '';
-  for(let r=0;r<9;r++){
-    for(let c=0;c<9;c++){
-      const idx = rcIndex(r,c);
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      if(givenMask[r][c]) cell.classList.add('given');
-      if(selected.r===r && selected.c===c) cell.classList.add('selected');
-      if(isConflictCell(r,c)) cell.classList.add('conflict');
-
-      cell.dataset.r = r; cell.dataset.c = c;
-      cell.tabIndex = 0;
-
-      const val = state[r][c];
-      if(val){
-        const span = document.createElement('div');
-        span.className = 'bigval';
-        span.textContent = val;
-        cell.appendChild(span);
-      } else {
-        const small = document.createElement('div');
-        small.className = 'small';
-        for(let n=1;n<=9;n++){
-          const s = document.createElement('span');
-          s.textContent = candidates[r][c].has(n) ? n : '';
-          small.appendChild(s);
-        }
-        cell.appendChild(small);
-      }
-
-      cell.addEventListener('click', ()=>{ selectCell(r,c); });
-      cell.addEventListener('keydown', (e)=>{ if(e.key==='Enter') selectCell(r,c); });
-      boardEl.appendChild(cell);
-    }
-  }
-  updateStatus();
-  updateLiveCount();
-}
-
-function selectCell(r,c){
-  selected = {r,c};
-  byId('selPos').textContent = `${r+1},${c+1}`;
-  renderBoard();
-}
-
-// ---------- Sudoku rules ----------
-function peersFor(r,c){
-  const peers = new Set();
-  for(let i=0;i<9;i++){ if(i!==c) peers.add(`${r},${i}`); if(i!==r) peers.add(`${i},${c}`); }
+/* ---------- Utilities ---------- */
+function inRow(r,n){ return puzzle[r].includes(n); }
+function inCol(c,n){ for(let r=0;r<SIZE;r++) if(puzzle[r][c] === n) return true; return false; }
+function inBox(r,c,n){
   const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
-  for(let rr=br;rr<br+3;rr++) for(let cc=bc;cc<bc+3;cc++) if(rr!==r||cc!==c) peers.add(`${rr},${cc}`);
-  return [...peers].map(s=>s.split(',').map(Number));
-}
-
-function computeCandidates(){
-  for(let r=0;r<9;r++){
-    for(let c=0;c<9;c++){
-      candidates[r][c].clear();
-      if(state[r][c]===0){
-        const used = new Set();
-        for(let i=0;i<9;i++){
-          if(state[r][i]) used.add(state[r][i]);
-          if(state[i][c]) used.add(state[i][c]);
-        }
-        const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-        for(let rr=br;rr<br+3;rr++) for(let cc=bc;cc<bc+3;cc++) if(state[rr][cc]) used.add(state[rr][cc]);
-        for(let n=1;n<=9;n++) if(!used.has(n)) candidates[r][c].add(n);
-      }
-    }
-  }
-}
-
-function isConflictCell(r,c){
-  if(state[r][c]===0) return false;
-  const v = state[r][c];
-  for(let i=0;i<9;i++){
-    if(i!==c && state[r][i]===v) return true;
-    if(i!==r && state[i][c]===v) return true;
-  }
-  const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-  for(let rr=br;rr<br+3;rr++) for(let cc=bc;cc<bc+3;cc++) if((rr!==r || cc!==c) && state[rr][cc]===v) return true;
+  for(let rr=br; rr<br+3; rr++) for(let cc=bc; cc<bc+3; cc++) if(puzzle[rr][cc] === n) return true;
   return false;
 }
 
-// ---------- Input handling ----------
-document.addEventListener('keydown', (e)=>{
-  // Space toggles candidate mode
-  if(e.code === 'Space'){
-    e.preventDefault();
-    candidateMode = !candidateMode;
-    byId('candState').textContent = candidateMode ? 'On' : 'Off';
-    renderBoard();
-    return;
+function computeCandidatesFor(r,c){
+  if(puzzle[r][c] !== 0) return new Set();
+  const s = new Set();
+  for(let n=1;n<=9;n++){
+    if(!inRow(r,n) && !inCol(c,n) && !inBox(r,c,n)) s.add(n);
   }
-  if(!selected || selected.r<0) return;
-  const key = e.key;
-  if(/^[1-9]$/.test(key)){
-    const n = Number(key);
-    handleNumberInput(n, e);
-  } else if(key === 'Backspace' || key === 'Delete' || key === '0'){
-    handleNumberInput(0, e);
-  } else if(key === 'ArrowUp'){ selected.r = (selected.r+8)%9; renderBoard(); }
-  else if(key === 'ArrowDown'){ selected.r = (selected.r+1)%9; renderBoard(); }
-  else if(key === 'ArrowLeft'){ selected.c = (selected.c+8)%9; renderBoard(); }
-  else if(key === 'ArrowRight'){ selected.c = (selected.c+1)%9; renderBoard(); }
-});
+  return s;
+}
 
-function handleNumberInput(n, e){
-  const r = selected.r, c = selected.c;
-  if(givenMask[r][c]) { setStatus('Cell is fixed (given)'); return; }
-
-  // If autoCandidates enabled: ensure entering a normal number does not toggle candidateMode.
-  // (We already only toggle with SPACE, so this is achieved by not modifying candidateMode here.)
-  if(candidateMode && !autoCandidates){
-    // Pencil/candidate mode - toggles candidate mark
-    if(n===0){
-      candidates[r][c].clear();
-    } else {
-      if(candidates[r][c].has(n)) candidates[r][c].delete(n);
-      else candidates[r][c].add(n);
+function computeAllCandidates(){
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      candidates[r][c] = computeCandidatesFor(r,c);
     }
-    updateLiveCount();
-    renderBoard();
-    setStatus('Toggled candidate mark');
-  } else {
-    // Normal entry mode
-    state[r][c] = n;
-    // When a number is entered, if autoCandidates is ON -> recalc automatically (but do not flip candidateMode)
-    if(autoCandidates){
-      computeCandidates();
-    }
-    renderBoard();
-    setStatus(n===0 ? 'Cleared cell' : `Entered ${n}`);
   }
 }
 
-// ---------- Buttons ----------
-byId('toggleDifficulty').addEventListener('click', ()=>{
-  const sel = byId('difficulty');
-  sel.classList.toggle('hidden');
-  byId('toggleDifficulty').textContent = sel.classList.contains('hidden') ? 'Show difficulty' : 'Hide difficulty';
-});
+/* ---------- Rendering ---------- */
 
-byId('autoBtn').addEventListener('click', ()=>{
+function cellId(r,c){ return `cell-${r}-${c}`; }
+
+function renderBoard(){
+  boardEl.innerHTML = '';
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      // thick lines for 3x3 boxes
+      if((c+1)%3 === 0 && c !== SIZE-1) cell.classList.add('thick-right');
+      if((r+1)%3 === 0 && r !== SIZE-1) cell.classList.add('thick-bottom');
+
+      cell.id = cellId(r,c);
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.tabIndex = 0;
+      // given cells
+      if(given[r][c]) cell.classList.add('given');
+      // value node
+      const val = document.createElement('div');
+      val.className = 'val';
+      val.textContent = puzzle[r][c] === 0 ? '' : puzzle[r][c];
+      cell.appendChild(val);
+      // candidates node
+      const cand = document.createElement('div');
+      cand.className = 'candidates';
+      cand.style.display = puzzle[r][c] === 0 ? 'grid' : 'none';
+      // ensure 9 slots
+      for(let i=0;i<9;i++){
+        const slot = document.createElement('div');
+        slot.className = 'cand-slot';
+        slot.dataset.pos = i+1;
+        slot.textContent = '';
+        cand.appendChild(slot);
+      }
+      cell.appendChild(cand);
+
+      // click handling selects cell
+      cell.addEventListener('click', () => {
+        focusCell(r,c);
+      });
+      // keyboard on cell
+      cell.addEventListener('keydown', (ev) => {
+        handleKey(ev, r, c);
+      });
+
+      boardEl.appendChild(cell);
+    }
+  }
+  updateCandidatesDisplay();
+  updateSelectionVisual();
+}
+
+/* ---------- Selection ---------- */
+function focusCell(r,c){
+  selected = {r,c};
+  updateSelectionVisual();
+  // focus in DOM for keyboard capture
+  const el = document.getElementById(cellId(r,c));
+  if(el) el.focus({preventScroll:true});
+}
+
+function updateSelectionVisual(){
+  document.querySelectorAll('.cell').forEach(el => el.classList.remove('focus'));
+  const el = document.getElementById(cellId(selected.r, selected.c));
+  if(el) el.classList.add('focus');
+}
+
+/* ---------- Candidates display ---------- */
+function updateCandidatesDisplay(){
+  if(autoCandidates) computeAllCandidates();
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      const el = document.getElementById(cellId(r,c));
+      if(!el) continue;
+      const candDiv = el.querySelector('.candidates');
+      const val = el.querySelector('.val');
+      if(puzzle[r][c] !== 0){
+        candDiv.style.display = 'none';
+        val.style.display = 'block';
+        val.textContent = puzzle[r][c];
+      } else {
+        candDiv.style.display = 'grid';
+        val.textContent = '';
+        // fill candidate slots
+        const slots = candDiv.querySelectorAll('.cand-slot');
+        // if there are manually set candidates (when not auto), we keep them; if autoCandidates, use computed set
+        const setToShow = autoCandidates ? candidates[r][c] : candidates[r][c];
+        for(let i=0;i<9;i++){
+          const n = i+1;
+          slots[i].textContent = setToShow.has(n) ? n : '';
+        }
+      }
+      // mark given visually
+      if(given[r][c]) el.classList.add('given'); else el.classList.remove('given');
+    }
+  }
+}
+
+/* ---------- Input handling ---------- */
+
+function setValue(r,c,n, options = {fromPad:false}){
+  if(given[r][c]) { setStatus('Cannot change a given cell', true); return; }
+  if(n === 0){
+    puzzle[r][c] = 0;
+    // when clearing we recompute candidates (auto or manual)
+    if(autoCandidates) computeAllCandidates();
+    updateCandidatesDisplay();
+    setStatus('Cell cleared');
+    return;
+  }
+  // If candidateMode is ON, entering a number toggles candidate mark for that cell (unless autoCandidates is on and user performed normal number entry)
+  if(candidateMode && !autoCandidates && !options.forceValue){
+    // toggle candidate n in set
+    const set = candidates[r][c];
+    if(set.has(n)) set.delete(n); else set.add(n);
+    updateCandidatesDisplay();
+    setStatus('Toggled candidate ' + n);
+    return;
+  }
+
+  // If autoCandidates is enabled: entering a normal number must NOT toggle candidate mode.
+  // We treat numbers entered as a hard value; candidateMode remains unchanged.
+  puzzle[r][c] = n;
+  // After placing number, if autoCandidates enabled, recompute all candidates
+  if(autoCandidates) computeAllCandidates();
+  // Also remove that candidate from other cells in same row/col/box if autoCandidates disabled (we don't auto-remove in manual candidate mode)
+  updateCandidatesDisplay();
+  setStatus('Placed ' + n);
+}
+
+function handleKey(ev, r, c){
+  // prevent default for keys we handle
+  if(ev.code === 'Space'){ ev.preventDefault(); toggleCandidateMode(); return; }
+  if(ev.key >= '1' && ev.key <= '9'){
+    ev.preventDefault();
+    const n = parseInt(ev.key,10);
+    // if candidateMode is ON and autoCandidates is disabled: toggle candidate
+    // If autoCandidates is enabled: entering a normal number must not toggle candidate mode -> so always set value
+    if(candidateMode && !autoCandidates){
+      // toggle candidate
+      const set = candidates[r][c];
+      if(set.has(n)) set.delete(n); else set.add(n);
+      updateCandidatesDisplay();
+    } else {
+      // normal entry - set value
+      setValue(r,c,n, {fromPad:false});
+    }
+    return;
+  }
+  if(ev.key === 'Backspace' || ev.key === 'Delete' || ev.key === '0'){
+    ev.preventDefault();
+    setValue(r,c,0);
+    return;
+  }
+  // arrow navigation
+  if(ev.key === 'ArrowUp'){ ev.preventDefault(); focusCell((r+8)%9,c); return; }
+  if(ev.key === 'ArrowDown'){ ev.preventDefault(); focusCell((r+1)%9,c); return; }
+  if(ev.key === 'ArrowLeft'){ ev.preventDefault(); focusCell(r,(c+8)%9); return; }
+  if(ev.key === 'ArrowRight'){ ev.preventDefault(); focusCell(r,(c+1)%9); return; }
+}
+
+/* ---------- Toggles / Buttons ---------- */
+
+function toggleCandidateMode(){
+  candidateMode = !candidateMode;
+  candidateStatusEl.textContent = candidateMode ? 'ON' : 'OFF';
+  candidateStatusEl.style.background = candidateMode ? 'rgba(6,182,212,0.06)' : 'transparent';
+  candidateStatusEl.style.color = candidateMode ? '#9bf0f8' : '';
+  setStatus('Candidate mode ' + (candidateMode ? 'ON' : 'OFF'));
+}
+
+function toggleAutoCandidates(){
   autoCandidates = !autoCandidates;
-  byId('autoCandidates').checked = autoCandidates;
-  byId('autoLabel').textContent = autoCandidates ? 'Auto-candidates (on)' : 'Auto-candidates (off)';
-  if(autoCandidates) { computeCandidates(); setStatus('Auto-candidates enabled'); }
-  else { setStatus('Auto-candidates disabled'); }
-  renderBoard();
+  autoStatusEl.textContent = autoCandidates ? 'ON' : 'OFF';
+  autoStatusEl.style.background = autoCandidates ? 'rgba(99,102,241,0.06)' : 'transparent';
+  autoStatusEl.style.color = autoCandidates ? '#cfe0ff' : '';
+  autoCandBtn.textContent = autoCandidates ? 'Disable auto-candidates' : 'Enable auto-candidates';
+  // If enabling, compute all candidates immediately
+  if(autoCandidates){
+    computeAllCandidates();
+  }
+  updateCandidatesDisplay();
+  setStatus('Auto-candidates ' + (autoCandidates ? 'enabled' : 'disabled'));
+}
+
+/* ---------- Setup events ---------- */
+
+document.addEventListener('keydown', (ev) => {
+  // global space toggles candidate mode when not focused on input elements; but we already handle Space on cells
+  if(ev.code === 'Space'){
+    const active = document.activeElement;
+    // avoid when an input/select is focused
+    if(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return;
+    ev.preventDefault();
+    toggleCandidateMode();
+  }
 });
 
-byId('autoCandidates').addEventListener('change', (e)=>{
-  autoCandidates = e.target.checked;
-  byId('autoLabel').textContent = autoCandidates ? 'Auto-candidates (on)' : 'Auto-candidates (off)';
-  if(autoCandidates) computeCandidates();
-  renderBoard();
+// toggle difficulty visibility
+toggleDifficultyBtn.addEventListener('click', () => {
+  if(difficultyContainer.classList.contains('hidden')){
+    difficultyContainer.classList.remove('hidden');
+    toggleDifficultyBtn.textContent = 'Hide difficulty';
+  } else {
+    difficultyContainer.classList.add('hidden');
+    toggleDifficultyBtn.textContent = 'Show difficulty';
+  }
 });
 
-byId('newBtn').addEventListener('click', ()=>{ generateNewPuzzle(); });
-byId('clearBtn').addEventListener('click', ()=>{
-  if(selected.r<0) return setStatus('No cell selected');
-  if(givenMask[selected.r][selected.c]) return setStatus('Given cell cannot be cleared');
-  state[selected.r][selected.c]=0;
-  if(autoCandidates) computeCandidates();
-  renderBoard(); setStatus('Cleared selected cell');
+// candidate toggle button
+toggleCandidateBtn.addEventListener('click', () => toggleCandidateMode());
+// auto candidate button
+autoCandBtn.addEventListener('click', () => toggleAutoCandidates());
+
+// number pad buttons
+numPad.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button');
+  if(!btn) return;
+  const n = btn.dataset.n;
+  if(n){
+    // enter number in selected cell
+    const {r,c} = selected;
+    const num = parseInt(n,10);
+    if(candidateMode && !autoCandidates){
+      // toggle candidate
+      const set = candidates[r][c];
+      if(set.has(num)) set.delete(num); else set.add(num);
+      updateCandidatesDisplay();
+      setStatus('Toggled candidate ' + num);
+    } else {
+      setValue(r,c,num, {fromPad:true});
+    }
+  } else {
+    if(btn.id === 'erase-btn'){ setValue(selected.r, selected.c, 0); }
+    if(btn.id === 'reset-btn'){ resetPuzzle(); }
+    if(btn.id === 'hint-btn'){ giveHint(); }
+  }
 });
-byId('eraseBtn').addEventListener('click', ()=>{
-  if(selected.r<0) return setStatus('No cell selected');
-  candidates[selected.r][selected.c].clear();
-  renderBoard(); setStatus('Erased candidates for cell');
-});
-byId('solveBtn').addEventListener('click', ()=>{
-  // Simple helper: fill one cell with a valid candidate if possible
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-    if(state[r][c]===0){
-      computeCandidates();
-      const opts = Array.from(candidates[r][c]);
-      if(opts.length){
-        state[r][c] = opts[0];
-        if(autoCandidates) computeCandidates();
-        renderBoard(); setStatus(`Hint: set ${opts[0]} at ${r+1},${c+1}`);
-        return;
+
+// erase button
+eraseBtn.addEventListener('click', () => setValue(selected.r, selected.c, 0));
+
+resetBtn.addEventListener('click', resetPuzzle);
+
+/* ---------- Actions ---------- */
+
+function resetPuzzle(){
+  puzzle = JSON.parse(JSON.stringify(samplePuzzle));
+  given = Array.from({length:SIZE}, (_,r) => Array.from({length:SIZE}, (_,c) => puzzle[r][c] !== 0));
+  candidates = Array.from({length:SIZE}, () => Array.from({length:SIZE}, () => new Set()));
+  if(autoCandidates) computeAllCandidates();
+  renderBoard();
+  setStatus('Puzzle reset');
+}
+
+/* ---------- Hint (very basic): place a correct number from computed candidates if only one candidate ---------- */
+function giveHint(){
+  if(autoCandidates) computeAllCandidates();
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      if(puzzle[r][c] === 0){
+        const set = candidates[r][c];
+        if(set.size === 1){
+          const val = Array.from(set)[0];
+          setValue(r,c,val, {forceValue:true});
+          setStatus('Hint placed ' + val);
+          return;
+        }
       }
     }
   }
-  setStatus('No hint available');
-});
-
-byId('exportBtn').addEventListener('click', ()=>{
-  const exportObj = {puzzle, state, candidates: candidates.map(row => row.map(s => Array.from(s)))};
-  navigator.clipboard?.writeText(JSON.stringify(exportObj, null, 2)).then(()=> setStatus('Export copied to clipboard'));
-});
-
-// Difficulty selector change
-byId('difficulty').addEventListener('change', (e)=>{
-  difficulty = e.target.value;
-  setStatus('Difficulty set to ' + difficulty);
-  generateNewPuzzle();
-});
-
-// ---------- Status ----------
-function setStatus(txt){ byId('status').textContent = txt; }
-function updateStatus(){
-  // show conflict count or solved
-  let conflicts = 0, empties = 0;
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-    if(state[r][c]===0) empties++;
-    if(isConflictCell(r,c)) conflicts++;
-  }
-  if(conflicts) byId('status').textContent = `${conflicts} conflict(s)`;
-  else if(empties===0) byId('status').textContent = 'Solved!';
-  else byId('status').textContent = `${empties} empty`;
-}
-
-function updateLiveCount(){
-  let count = 0;
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(candidates[r][c].size) count++;
-  byId('liveCount').textContent = count;
-}
-
-// ---------- Generate puzzle (basic removals from a sample) ----------
-function removeCellsFrom(base, holes){
-  const g = cloneGrid(base);
-  const all = [];
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++) all.push([r,c]);
-  // randomize
-  for(let i=all.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [all[i],all[j]]=[all[j],all[i]]; }
-  for(let i=0;i<holes;i++){ const [r,c]=all[i]; g[r][c]=0; }
-  return g;
-}
-
-function generateNewPuzzle(){
-  let base;
-  if(difficulty==='easy') base = sampleEasy;
-  else if(difficulty==='medium') base = sampleMedium;
-  else if(difficulty==='hard') base = sampleHard;
-  else base = sampleHard;
-
-  // for "insane", remove more from medium baseline
-  const holes = difficulty==='easy'? 40 : difficulty==='medium'? 50 : difficulty==='hard'? 56 : 60;
-  puzzle = removeCellsFrom(base, holes);
-  puzzle = puzzle.map(r=>r.slice());
-  givenMask = makeEmptyGrid(false);
-  state = makeEmptyGrid(0);
-  candidates = makeEmptyCandidates();
-  for(let r=0;r<9;r++) for(let c=0;c<9;c++){
-    if(puzzle[r][c] && puzzle[r][c]>0){
-      state[r][c] = puzzle[r][c];
-      givenMask[r][c] = true;
+  // fallback: find first empty and put one candidate value
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      if(puzzle[r][c] === 0){
+        const set = computeCandidatesFor(r,c);
+        if(set.size > 0){
+          const val = Array.from(set)[0];
+          setValue(r,c,val, {forceValue:true});
+          setStatus('Hint placed ' + val);
+          return;
+        }
+      }
     }
   }
-  if(autoCandidates) computeCandidates();
-  renderBoard();
-  setStatus('Generated new puzzle');
+  setStatus('No hints available', true);
 }
 
-// ---------- Initial setup ----------
-function init(){
-  givenMask = makeEmptyGrid(false);
-  state = makeEmptyGrid(0);
-  candidates = makeEmptyCandidates();
-  // start with hidden difficulty (default is medium)
-  byId('difficulty').classList.add('hidden');
-  candidateMode = false;
-  byId('candState').textContent = 'Off';
-  autoCandidates = false;
-  byId('autoCandidates').checked = false;
-  byId('autoLabel').textContent = 'Auto-candidates (off)';
-  difficulty = byId('difficulty').value || 'medium';
-  generateNewPuzzle();
+/* ---------- Status helper ---------- */
+function setStatus(msg, isError=false){
+  statusEl.textContent = msg;
+  statusEl.style.background = isError ? 'rgba(255,50,50,0.06)' : 'transparent';
+  statusEl.style.color = isError ? '#ffb4b4' : '';
 }
-init();
 
-// ---------- Commit info fetch (client-side) ----------
+/* ---------- Initial render ---------- */
+computeAllCandidates();
+renderBoard();
+focusCell(0,0);
+
+/* ---------- Commit info fetch (client-side) ---------- */
+/*
+  The user requested: "Display latest commit information (message + author + timestamp converted to CET) from:
+  https://github.com/BoredGuy/sudoku/blob/d56c161a3c5ae126de5ff51a11d04b388a8f580e/index.html"
+
+  We'll fetch the commit object for the given commit hash via GitHub API:
+  GET https://api.github.com/repos/BoredGuy/sudoku/commits/d56c161a3c5ae126de5ff51a11d04b388a8f580e
+
+  Convert commit.commit.author.date to CET using Intl.DateTimeFormat with timeZone 'Europe/Berlin'.
+*/
 (async function fetchCommitInfo(){
-  const commitBox = byId('commitInfo');
+  const commitHash = 'd56c161a3c5ae126de5ff51a11d04b388a8f580e';
+  const apiUrl = `https://api.github.com/repos/BoredGuy/sudoku/commits/${commitHash}`;
   try{
-    // Fetch commit metadata for the exact SHA provided in the user's requirement.
-    const commitSha = 'd56c161a3c5ae126de5ff51a11d04b388a8f580e';
-    const apiUrl = `https://api.github.com/repos/BoredGuy/sudoku/commits/${commitSha}`;
-
-    const resp = await fetch(apiUrl, {headers:{'Accept':'application/vnd.github.v3+json'}});
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    const j = await resp.json();
-    // j.commit.message, j.commit.author.name, j.commit.author.date
-    const msg = j.commit?.message || '(no message)';
-    const author = j.commit?.author?.name || j.author?.login || '(unknown)';
-    const dateISO = j.commit?.author?.date || j.commit?.committer?.date;
-    // Convert to Europe/Berlin (CET/CEST depending on date)
-    let formatted = dateISO;
-    try{
+    const res = await fetch(apiUrl, {headers:{'Accept':'application/vnd.github.v3+json'}});
+    if(!res.ok){
+      throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+    }
+    const data = await res.json();
+    // Attempt to extract required fields
+    const message = (data.commit && data.commit.message) ? data.commit.message : '(no message)';
+    const authorName = (data.commit && data.commit.author && data.commit.author.name) ? data.commit.author.name : (data.author && data.author.login) ? data.author.login : 'Unknown';
+    const dateISO = (data.commit && data.commit.author && data.commit.author.date) ? data.commit.author.date : null;
+    let dateStr = 'Unknown date';
+    if(dateISO){
+      // Convert to CET (Europe/Berlin). Use toLocaleString with timeZone to get CET/CEST automatically depending on date.
       const dt = new Date(dateISO);
-      formatted = dt.toLocaleString([], {timeZone:'Europe/Berlin', year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'});
-    }catch(e){}
-    commitBox.innerHTML = `<div><strong>${escapeHtml(msg)}</strong></div>
-      <div>Author: <em>${escapeHtml(author)}</em></div>
-      <div>Timestamp (Europe/Berlin): <code>${escapeHtml(formatted)}</code></div>`;
+      dateStr = dt.toLocaleString(undefined, {timeZone: 'Europe/Berlin', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    }
+    commitInfoEl.textContent = `Message: ${message}\nAuthor: ${authorName}\nTime (CET): ${dateStr}`;
   }catch(err){
-    commitBox.innerHTML = `<div class="muted">Unable to fetch commit information in this environment. The page attempts to load commit data from the GitHub API when opened in a browser. Error: ${escapeHtml(String(err))}</div>`;
+    console.warn('Failed to fetch commit info:', err);
+    commitInfoEl.textContent = 'Could not fetch commit info here. The page will try to fetch it from GitHub API when loaded. Error: ' + (err && err.message ? err.message : err);
   }
 })();
 
-function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+/* ---------- Accessibility & focus behavior ---------- */
+// allow clicking empty space to focus board root
+boardEl.addEventListener('click', () => {
+  const el = document.getElementById(cellId(selected.r, selected.c));
+  if(el) el.focus();
+});
 
-// ---------- Always regenerate full HTML (note to user)
-console.log('Full HTML regenerated.');
+// Save candidate sets locally if user toggles candidate mode manually and adds candidates (so manual candidates are preserved)
+window.addEventListener('beforeunload', () => {
+  try{ localStorage.setItem('sudoku-candidates', JSON.stringify(candidatesToArray())); }catch(e){}
+});
+function candidatesToArray(){
+  return candidates.map(row => row.map(set => Array.from(set)));
+}
+function loadSavedCandidates(){
+  try{
+    const raw = localStorage.getItem('sudoku-candidates');
+    if(raw){
+      const arr = JSON.parse(raw);
+      for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) candidates[r][c] = new Set(arr[r][c] || []);
+    }
+  }catch(e){}
+}
+loadSavedCandidates();
+updateCandidatesDisplay();
 
-// ---------- End of file ----------
 </script>
 </body>
 </html>
