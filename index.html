@@ -188,6 +188,23 @@
       if (target) target.classList.add('hint');
     }
 
+    function timeAgo(time) {
+      const diff = (Date.now() - time.getTime()) / 1000;
+      const intervals = [
+        { label: 'year', secs: 31536000 },
+        { label: 'month', secs: 2592000 },
+        { label: 'day', secs: 86400 },
+        { label: 'hour', secs: 3600 },
+        { label: 'minute', secs: 60 },
+        { label: 'second', secs: 1 }
+      ];
+      for (const i of intervals) {
+        const val = Math.floor(diff / i.secs);
+        if (val >= 1) return `${val} ${i.label}${val > 1 ? 's' : ''}`;
+      }
+      return 'just now';
+    }
+
     async function loadCommitInfo() {
       const url = 'https://api.github.com/repos/BoredGuy/sudoku/commits?path=index.html';
       try {
@@ -196,8 +213,8 @@
         const commit = data[0];
         const msg = commit.commit.message;
         const author = commit.commit.author.name;
-        const date = new Date(commit.commit.author.date).toLocaleString();
-        document.getElementById('commit-info').textContent = `Latest Commit: "${msg}" by ${author} on ${date}`;
+        const date = new Date(commit.commit.author.date).toLocaleString(undefined, { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+        document.getElementById('commit-info').textContent = `Latest Commit: "${msg}" by ${author} on ${date} (" + timeAgo(new Date(commit.commit.author.date)) + " ago)`;
       } catch (e) {
         document.getElementById('commit-info').textContent = 'Failed to load commit info.';
       }
