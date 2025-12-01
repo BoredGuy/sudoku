@@ -33,6 +33,7 @@
       align-items: center;
       font-size: 20px;
       background: white;
+      position: relative;
     }
     .cell.selected {
       background: #d0e6ff;
@@ -44,197 +45,234 @@
       font-weight: bold;
       background: #eaeaea;
     }
-    $1
-    <button id="pencil-mode">Pencil Mode</button>
-$2
+    .pencil {
+      position: absolute;
+      font-size: 10px;
+      color: #666;
+      top: 2px;
+      left: 2px;
+    }
+    #controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    #timer {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+    #commit-info {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #333;
+      max-width: 600px;
+      text-align: center;
+      word-break: break-word;
+    }
+    #pencil-mode.active {
+      background: #ffd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sudoku</h1>
+  <div id="sudoku-board"></div>
   <div id="controls">
     <button id="new-game">New Puzzle</button>
     <button id="hint">Hint</button>
+    <button id="pencil-mode">Pencil Mode</button>
   </div>
   <div id="timer">00:00</div>
   <div id="commit-info">Loading latest commit info...</div>
 
   <script>
-    const boardElement = document.getElementById('sudoku-board');
-    const timerElement = document.getElementById('timer');
-    let selectedCell = null;
-    let pencilMode = false;
-    let timer = 0;
-    let timerInterval;
+    document.addEventListener('DOMContentLoaded', () => {
+      const boardElement = document.getElementById('sudoku-board');
+      const timerElement = document.getElementById('timer');
+      const pencilButton = document.getElementById('pencil-mode');
+      let selectedCell = null;
+      let pencilMode = false;
+      let timer = 0;
+      let timerInterval;
 
-    function startTimer() {
-      clearInterval(timerInterval);
-      timer = 0;
-      timerInterval = setInterval(() => {
-        timer++;
-        const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
-        const seconds = String(timer % 60).padStart(2, '0');
-        timerElement.textContent = `${minutes}:${seconds}`;
-      }, 1000);
-    }
+      function startTimer() {
+        clearInterval(timerInterval);
+        timer = 0;
+        timerInterval = setInterval(() => {
+          timer++;
+          const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
+          const seconds = String(timer % 60).padStart(2, '0');
+          timerElement.textContent = `${minutes}:${seconds}`;
+        }, 1000);
+      }
 
-    function generateSudoku() {
-      const board = Array.from({ length: 9 }, () => Array(9).fill(0));
-      solve(board);
-      removeCells(board, 50);
-      return board;
-    }
+      function generateSudoku() {
+        const board = Array.from({ length: 9 }, () => Array(9).fill(0));
+        solve(board);
+        removeCells(board, 50);
+        return board;
+      }
 
-    function solve(board) {
-      for (let row = 0; row < 9; row++) {
-        for (let col = 0; col < 9; col++) {
-          if (board[row][col] === 0) {
-            const nums = shuffle([1,2,3,4,5,6,7,8,9]);
-            for (let num of nums) {
-              if (isValid(board, row, col, num)) {
-                board[row][col] = num;
-                if (solve(board)) return true;
-                board[row][col] = 0;
+      function solve(board) {
+        for (let row = 0; row < 9; row++) {
+          for (let col = 0; col < 9; col++) {
+            if (board[row][col] === 0) {
+              const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+              for (let num of nums) {
+                if (isValid(board, row, col, num)) {
+                  board[row][col] = num;
+                  if (solve(board)) return true;
+                  board[row][col] = 0;
+                }
               }
+              return false;
             }
-            return false;
+          }
+        }
+        return true;
+      }
+
+      function isValid(board, r, c, n) {
+        for (let i = 0; i < 9; i++) {
+          if (board[r][i] === n || board[i][c] === n) return false;
+        }
+        const br = Math.floor(r / 3) * 3;
+        const bc = Math.floor(c / 3) * 3;
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            if (board[br + i][bc + j] === n) return false;
+          }
+        }
+        return true;
+      }
+
+      function removeCells(board, count) {
+        while (count--) {
+          const r = Math.floor(Math.random() * 9);
+          const c = Math.floor(Math.random() * 9);
+          board[r][c] = 0;
+        }
+      }
+
+      function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function renderBoard(board) {
+        boardElement.innerHTML = '';
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const div = document.createElement('div');
+            div.className = 'cell';
+            div.dataset.row = r;
+            div.dataset.col = c;
+            if (board[r][c] !== 0) {
+              div.textContent = board[r][c];
+              div.classList.add('fixed');
+            }
+            div.addEventListener('click', () => selectCell(div));
+            boardElement.appendChild(div);
           }
         }
       }
-      return true;
-    }
 
-    function isValid(board, r, c, n) {
-      for (let i = 0; i < 9; i++) {
-        if (board[r][i] === n || board[i][c] === n) return false;
+      function selectCell(cell) {
+        if (selectedCell) selectedCell.classList.remove('selected');
+        selectedCell = cell;
+        selectedCell.classList.add('selected');
       }
-      const br = Math.floor(r / 3) * 3;
-      const bc = Math.floor(c / 3) * 3;
-      for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-          if (board[br + i][bc + j] === n) return false;
-        }
-      }
-      return true;
-    }
 
-    function removeCells(board, count) {
-      while (count--) {
-        const r = Math.floor(Math.random() * 9);
-        const c = Math.floor(Math.random() * 9);
-        board[r][c] = 0;
-      }
-    }
+      document.addEventListener('keydown', (e) => {
+        if (!selectedCell) return;
+        const key = e.key;
+        if (!/^[1-9]$/.test(key)) return;
+        const isPencil = pencilMode || e.shiftKey;
 
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-
-    /* Pencil mark styling */
-    const style = document.createElement('style');
-    style.textContent = `.pencil{position:absolute;font-size:10px;color:#666;} .cell{position:relative;}`;
-    document.head.appendChild(style);
-
-    function renderBoard(board) {
-      boardElement.innerHTML = '';
-      for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
-          const div = document.createElement('div');
-          div.className = 'cell';
-          div.dataset.row = r;
-          div.dataset.col = c;
-          if (board[r][c] !== 0) {
-            div.textContent = board[r][c];
-            div.classList.add('fixed');
+        if (isPencil) {
+          let mark = selectedCell.querySelector(`.pencil[data-num='${key}']`);
+          if (!mark) {
+            mark = document.createElement('div');
+            mark.className = 'pencil';
+            mark.dataset.num = key;
+            mark.textContent = key;
+            selectedCell.appendChild(mark);
+          } else {
+            mark.remove();
           }
-          div.addEventListener('click', () => selectCell(div));
-          boardElement.appendChild(div);
+        } else if (!selectedCell.classList.contains('fixed')) {
+          selectedCell.textContent = key;
+          selectedCell.querySelectorAll('.pencil').forEach(p => p.remove());
+        }
+      });
+
+      pencilButton.addEventListener('click', () => {
+        pencilMode = !pencilMode;
+        pencilButton.classList.toggle('active', pencilMode);
+      });
+
+      function highlightHint() {
+        const cells = [...document.querySelectorAll('.cell')];
+        cells.forEach(c => c.classList.remove('hint'));
+        const empty = cells.filter(c => !c.textContent || !c.classList.contains('fixed'));
+        const target = empty[Math.floor(Math.random() * empty.length)];
+        if (target) target.classList.add('hint');
+      }
+
+      function timeAgo(time) {
+        const diff = (Date.now() - time.getTime()) / 1000;
+        const intervals = [
+          { label: 'year', secs: 31536000 },
+          { label: 'month', secs: 2592000 },
+          { label: 'day', secs: 86400 },
+          { label: 'hour', secs: 3600 },
+          { label: 'minute', secs: 60 },
+          { label: 'second', secs: 1 }
+        ];
+        for (const i of intervals) {
+          const val = Math.floor(diff / i.secs);
+          if (val >= 1) return `${val} ${i.label}${val > 1 ? 's' : ''}`;
+        }
+        return 'just now';
+      }
+
+      async function loadCommitInfo() {
+        const commitInfo = document.getElementById('commit-info');
+        try {
+          const res = await fetch('https://api.github.com/repos/BoredGuy/sudoku/commits?path=index.html');
+          if (!res.ok) throw new Error('Network response was not ok');
+          const data = await res.json();
+          if (data && data.length) {
+            const commit = data[0];
+            const msg = commit.commit.message;
+            const author = commit.commit.author.name;
+            const date = new Date(commit.commit.author.date).toLocaleString(undefined, { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+            commitInfo.textContent = `Latest Commit: "${msg}" by ${author} on ${date} (${timeAgo(new Date(commit.commit.author.date))} ago)`;
+          } else {
+            commitInfo.textContent = 'No commit data available.';
+          }
+        } catch (e) {
+          console.error(e);
+          commitInfo.textContent = 'Failed to load commit info.';
         }
       }
-    }
 
-    function selectCell(cell) {
-      if (selectedCell) selectedCell.classList.remove('selected');
-      selectedCell = cell;
-      selectedCell.classList.add('selected');
-    }
+      document.getElementById('new-game').addEventListener('click', () => {
+        const puzzle = generateSudoku();
+        renderBoard(puzzle);
+        startTimer();
+      });
 
-    document.addEventListener('keydown', (e) => {
-      if (!selectedCell) return;
-      const key = e.key;
-      if (!/^[1-9]$/.test(key)) return;
+      document.getElementById('hint').addEventListener('click', highlightHint);
 
-      const isPencil = pencilMode || e.shiftKey;
-
-      if (isPencil) {
-        let mark = selectedCell.querySelector(`.pencil[data-num='${key}']`);
-        if (!mark) {
-          mark = document.createElement('div');
-          mark.className = 'pencil';
-          mark.dataset.num = key;
-          selectedCell.appendChild(mark);
-        } else {
-          mark.remove();
-        }
-      } else if (!selectedCell.classList.contains('fixed')) {
-        selectedCell.textContent = key;
-        selectedCell.querySelectorAll('.pencil').forEach(p => p.remove());
-      }
-    });
-
-    function highlightHint() {
-      const cells = [...document.querySelectorAll('.cell')];
-      cells.forEach(c => c.classList.remove('hint'));
-      const empty = cells.filter(c => !c.textContent || c.classList.contains('fixed') === false);
-      const target = empty[Math.floor(Math.random() * empty.length)];
-      if (target) target.classList.add('hint');
-    }
-
-    function timeAgo(time) {
-      const diff = (Date.now() - time.getTime()) / 1000;
-      const intervals = [
-        { label: 'year', secs: 31536000 },
-        { label: 'month', secs: 2592000 },
-        { label: 'day', secs: 86400 },
-        { label: 'hour', secs: 3600 },
-        { label: 'minute', secs: 60 },
-        { label: 'second', secs: 1 }
-      ];
-      for (const i of intervals) {
-        const val = Math.floor(diff / i.secs);
-        if (val >= 1) return `${val} ${i.label}${val > 1 ? 's' : ''}`;
-      }
-      return 'just now';
-    }
-
-    async function loadCommitInfo() {
-      const url = 'https://api.github.com/repos/BoredGuy/sudoku/commits?path=index.html';
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const commit = data[0];
-        const msg = commit.commit.message;
-        const author = commit.commit.author.name;
-        const date = new Date(commit.commit.author.date).toLocaleString(undefined, { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
-        document.getElementById('commit-info').textContent = `Latest Commit: "${msg}" by ${author} on ${date} (${timeAgo(new Date(commit.commit.author.date))} ago)`;
-      } catch (e) {
-        document.getElementById('commit-info').textContent = 'Failed to load commit info.';
-      }
-    }
-
-    document.getElementById('new-game').addEventListener('click', () => {
-      const puzzle = generateSudoku();
-      renderBoard(puzzle);
+      const initialPuzzle = generateSudoku();
+      renderBoard(initialPuzzle);
       startTimer();
+      loadCommitInfo();
     });
-
-    document.getElementById('pencil-mode').addEventListener('click',()=>{pencilMode=!pencilMode;document.getElementById('pencil-mode').style.background=pencilMode?'#ffd':'white';});
-
-    document.getElementById('hint').addEventListener('click', highlightHint);
-
-    const initialPuzzle = generateSudoku();
-    renderBoard(initialPuzzle);
-    startTimer();
-    loadCommitInfo();
   </script>
 </body>
 </html>
