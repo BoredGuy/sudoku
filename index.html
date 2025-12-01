@@ -44,27 +44,9 @@
       font-weight: bold;
       background: #eaeaea;
     }
-    #controls {
-      margin-top: 20px;
-      display: flex;
-      gap: 10px;
-    }
-    #timer {
-      margin-top: 10px;
-      font-size: 18px;
-    }
-    #commit-info {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #333;
-      max-width: 600px;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <h1>Sudoku</h1>
-  <div id="sudoku-board"></div>
+    $1
+    <button id="pencil-mode">Pencil Mode</button>
+$2
   <div id="controls">
     <button id="new-game">New Puzzle</button>
     <button id="hint">Hint</button>
@@ -76,6 +58,7 @@
     const boardElement = document.getElementById('sudoku-board');
     const timerElement = document.getElementById('timer');
     let selectedCell = null;
+    let pencilMode = false;
     let timer = 0;
     let timerInterval;
 
@@ -146,6 +129,11 @@
       return arr;
     }
 
+    /* Pencil mark styling */
+    const style = document.createElement('style');
+    style.textContent = `.pencil{position:absolute;font-size:10px;color:#666;} .cell{position:relative;}`;
+    document.head.appendChild(style);
+
     function renderBoard(board) {
       boardElement.innerHTML = '';
       for (let r = 0; r < 9; r++) {
@@ -173,10 +161,23 @@
     document.addEventListener('keydown', (e) => {
       if (!selectedCell) return;
       const key = e.key;
-      if (/^[1-9]$/.test(key)) {
-        if (!selectedCell.classList.contains('fixed')) {
-          selectedCell.textContent = key;
+      if (!/^[1-9]$/.test(key)) return;
+
+      const isPencil = pencilMode || e.shiftKey;
+
+      if (isPencil) {
+        let mark = selectedCell.querySelector(`.pencil[data-num='${key}']`);
+        if (!mark) {
+          mark = document.createElement('div');
+          mark.className = 'pencil';
+          mark.dataset.num = key;
+          selectedCell.appendChild(mark);
+        } else {
+          mark.remove();
         }
+      } else if (!selectedCell.classList.contains('fixed')) {
+        selectedCell.textContent = key;
+        selectedCell.querySelectorAll('.pencil').forEach(p => p.remove());
       }
     });
 
@@ -225,6 +226,8 @@
       renderBoard(puzzle);
       startTimer();
     });
+
+    document.getElementById('pencil-mode').addEventListener('click',()=>{pencilMode=!pencilMode;document.getElementById('pencil-mode').style.background=pencilMode?'#ffd':'white';});
 
     document.getElementById('hint').addEventListener('click', highlightHint);
 
