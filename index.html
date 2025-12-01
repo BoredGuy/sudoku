@@ -214,7 +214,7 @@
         const msg = commit.commit.message;
         const author = commit.commit.author.name;
         const date = new Date(commit.commit.author.date).toLocaleString(undefined, { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
-        document.getElementById('commit-info').textContent = `Latest Commit: "${msg}" by ${author} on ${date} (" + timeAgo(new Date(commit.commit.author.date)) + " ago)`;
+        document.getElementById('commit-info').textContent = `Latest Commit: "${msg}" by ${author} on ${date} (${timeAgo(new Date(commit.commit.author.date))} ago)`;
       } catch (e) {
         document.getElementById('commit-info').textContent = 'Failed to load commit info.';
       }
