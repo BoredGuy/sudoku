@@ -69,7 +69,7 @@
     <button id="new-game">New Puzzle</button>
     <button id="hint">Hint</button>
   </div>
-  <div id="timer">Time: 00:00</div>
+  <div id="timer">00:00</div>
   <div id="commit-info">Loading latest commit info...</div>
 
   <script>
@@ -86,7 +86,7 @@
         timer++;
         const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
         const seconds = String(timer % 60).padStart(2, '0');
-        timerElement.textContent = `Time: ${minutes}:${seconds}`;
+        timerElement.textContent = `${minutes}:${seconds}`;
       }, 1000);
     }
 
