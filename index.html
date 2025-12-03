@@ -320,37 +320,53 @@
 
       async function loadCommitInfo() {
         const commitInfo = document.getElementById('commit-info');
-        try {
-          const res = await fetch('https://api.github.com/repos/BoredGuy/sudoku/commits?path=index.html');
-          if (!res.ok) throw new Error('Network response was not ok');
-          const data = await res.json();
-          if (data && data.length) {
-            const commit = data[0];
-            const msg = commit.commit.message;
-            const author = commit.commit.author.name;
-            const date = new Date(commit.commit.author.date).toLocaleString(undefined, { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
-            commitInfo.textContent = `Latest Commit: "${msg}" by ${author} on ${date} (${timeAgo(new Date(commit.commit.author.date))} ago)`;
-          } else {
-            commitInfo.textContent = 'No commit data available.';
+
+        async function checkPagesReady() {
+          try {
+            const pagesCheck = await fetch('https://boredguy.github.io/sudoku/index.html', { cache: 'no-cache' });
+            return pagesCheck.ok;
+          } catch {
+            return false;
           }
-        } catch (e) {
-          console.error(e);
-          commitInfo.textContent = 'Failed to load commit info.';
         }
+
+        // Poll every 5 seconds until GitHub Pages is updated
+        async function pollUntilReady() {
+          const ready = await checkPagesReady();
+          if (!ready) {
+            commitInfo.textContent = 'Waiting for GitHub Pages to update...';
+            setTimeout(pollUntilReady, 5000);
+            return;
+          }
+          loadCommitDetails();
+        }
+
+        async function loadCommitDetails() {
+          try {
+            const res = await fetch('https://api.github.com/repos/BoredGuy/sudoku/commits?path=index.html');
+            if (!res.ok) throw new Error('Network response was not ok');
+
+            const data = await res.json();
+            if (data && data.length) {
+              const commit = data[0];
+              const msg = commit.commit.message;
+              const author = commit.commit.author.name;
+              const dateObj = new Date(commit.commit.author.date);
+              const localDate = dateObj.toLocaleString(undefined, { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+              commitInfo.textContent = `Latest Commit: "${msg}" by ${author} on ${localDate} (${timeAgo(dateObj)} ago)`;
+            } else {
+              commitInfo.textContent = 'No commit data available.';
+            }
+          } catch (e) {
+            console.error(e);
+            commitInfo.textContent = 'Failed to load commit info.';
+          }
+        }
+
+        pollUntilReady();
       }
 
-      document.getElementById('new-game').addEventListener('click', () => {
-        const puzzle = generateSudoku();
-        renderBoard(puzzle);
-        startTimer();
-      });
-
-      document.getElementById('hint').addEventListener('click', highlightHint);
-
-      const initialPuzzle = generateSudoku();
-      renderBoard(initialPuzzle);
-      startTimer();
-      loadCommitInfo();
+      window.addEventListener('load', loadCommitInfo);
     });
   </script>
 </body>
