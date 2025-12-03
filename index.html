@@ -11,7 +11,7 @@
       flex-direction: column;
       align-items: center;
       margin: 0;
-      padding: 10px;
+      padding: 20px;
       background: #f4f4f4;
     }
     h1 {
@@ -19,20 +19,19 @@
     }
     #sudoku-board {
       display: grid;
-      grid-template-columns: repeat(9, minmax(30px, 1fr));
-      grid-template-rows: repeat(9, minmax(30px, 1fr));
+      grid-template-columns: repeat(9, 40px);
+      grid-template-rows: repeat(9, 40px);
       gap: 0;
       border: 3px solid #000;
-      width: 90vw;
-      max-width: 450px;
-      aspect-ratio: 1 / 1;
     }
     .cell {
+      width: 40px;
+      height: 40px;
       border: 1px solid #999;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: clamp(14px, 2.5vw, 22px);
+      font-size: 20px;
       background: white;
       position: relative;
     }
@@ -56,15 +55,11 @@
     #controls {
       margin-top: 20px;
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
       gap: 10px;
-      width: 100%;
-      max-width: 450px;
     }
     #timer {
       margin-top: 10px;
-      font-size: clamp(16px, 2vw, 20px);
+      font-size: 18px;
     }
     #commit-info {
       margin-top: 20px;
@@ -77,27 +72,32 @@
     #pencil-mode.active {
       background: #ffd;
     }
-  @media (max-width: 480px) {
-      #sudoku-board {
-        width: 100vw;
-        max-width: none;
-        border-width: 2px;
+    #number-pad {
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 450px;
+    }
+    #number-pad button {
+      padding: 12px 0;
+      font-size: 18px;
+      border-radius: 6px;
+      border: 1px solid #888;
+      background: white;
+    }
+    #number-pad button:active {
+      background: #e0eaff;
+    }
+
+    @media (max-width: 480px) {
+      #number-pad button {
+        padding: 10px 0;
+        font-size: 16px;
       }
-      .cell {
-        font-size: clamp(12px, 4vw, 20px);
-        border-width: 0.5px;
-      }
-      #controls button {
-        flex: 1 1 calc(50% - 10px);
-        padding: 10px;
-        font-size: 14px;
-      }
-      #controls {
-        gap: 8px;
-      }
-      #timer {
-        font-size: 18px;
-      }
+    } {
+      background: #ffd;
     }
   </style>
 </head>
@@ -109,6 +109,20 @@
     <button id="hint">Hint</button>
     <button id="pencil-mode">Pencil Mode</button>
   </div>
+
+  <!-- Mobile Number Pad -->
+  <div id="number-pad">
+    <button data-num="1">1</button>
+    <button data-num="2">2</button>
+    <button data-num="3">3</button>
+    <button data-num="4">4</button>
+    <button data-num="5">5</button>
+    <button data-num="6">6</button>
+    <button data-num="7">7</button>
+    <button data-num="8">8</button>
+    <button data-num="9">9</button>
+  </div>
+
   <div id="timer">00:00</div>
   <div id="commit-info">Loading latest commit info...</div>
 
@@ -234,6 +248,33 @@
           selectedCell.textContent = key;
           selectedCell.querySelectorAll('.pencil').forEach(p => p.remove());
         }
+      });
+
+      function handleInput(key, shiftHeld) {
+        if (!selectedCell) return;
+        if (!/^[1-9]$/.test(key)) return;
+        const isPencil = pencilMode || shiftHeld;
+
+        if (isPencil) {
+          let mark = selectedCell.querySelector(`.pencil[data-num='${key}']`);
+          if (!mark) {
+            mark = document.createElement('div');
+            mark.className = 'pencil';
+            mark.dataset.num = key;
+            mark.textContent = key;
+            selectedCell.appendChild(mark);
+          } else {
+            mark.remove();
+          }
+        } else if (!selectedCell.classList.contains('fixed')) {
+          selectedCell.textContent = key;
+          selectedCell.querySelectorAll('.pencil').forEach(p => p.remove());
+        }
+      }
+
+      // Mobile keypad input
+      document.querySelectorAll('#number-pad button').forEach(btn => {
+        btn.addEventListener('click', () => handleInput(btn.dataset.num, false));
       });
 
       pencilButton.addEventListener('click', () => {
