@@ -370,5 +370,18 @@
       window.addEventListener('load', loadCommitInfo);
     });
   </script>
+  <!-- Build Update Marker -->
+  <div id="build-marker" style="position:fixed; bottom:10px; right:10px; background:#4caf50; color:white; padding:6px 10px; border-radius:6px; font-size:12px; z-index:9999; box-shadow:0 2px 6px rgba(0,0,0,0.3); opacity:0; transition:opacity 0.4s;">Updated ✔</div>
+
+  <script>
+    // Show the update marker briefly to confirm new build is active
+    window.addEventListener('DOMContentLoaded', () => {
+      const marker = document.getElementById('build-marker');
+      if (marker) {
+        marker.style.opacity = '1';
+        setTimeout(() => marker.style.opacity = '0', 2500);
+      }
+    });
+  </script>
 </body>
 </html>
