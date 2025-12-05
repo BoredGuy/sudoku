@@ -1,150 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sudoku Game</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Sudoku — Playable</title>
   <style>
+    :root{--gap:4px;--cell-min:32px}
+    html,body{height:100%;}
     body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 0;
-      padding: 5px;
-      height: 100vh;
-      overflow: hidden;
-      box-sizing: border-box;
-      background: #f4f4f4;
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    #sudoku-board {
-  display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  grid-template-rows: repeat(9, 1fr);
-  width: 90vmin;
-  max-width: 420px;
-  aspect-ratio: 1 / 1;
-  margin: 0 auto;
-  border: 2px solid #000;
-  background: #fff;
-  min-height: 300px; /* force visible area */
-}
-    .cell {
-      border: 1px solid #999;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: clamp(14px, 2.5vw, 22px);
-      background: white;
-      position: relative;
-    }
-    .cell.selected {
-      background: #d0e6ff;
-    }
-    .cell.hint {
-      background: #c8ffc8;
-    }
-    .fixed {
-      font-weight: bold;
-      background: #eaeaea;
-    }
-    .pencil {
-      position: absolute;
-      font-size: 10px;
-      color: #666;
-      top: 2px;
-      left: 2px;
-    }
-    #controls {
-      margin-top: 5px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      max-width: 450px;
-    }
-    #timer {
-      margin-top: 4px;
-      font-size: clamp(14px, 2vw, 18px);
-    }
-    #commit-info {
-      margin-top: 20px;
-      font-size: 14px;
-      color: #333;
-      max-width: 600px;
-      text-align: center;
-      word-break: break-word;
-    }
-    #pencil-mode.active {
-      background: #ffd;
-    }
-    #number-pad {
-      margin-top: 5px;
-      display: grid;
-      grid-template-columns: repeat(9, 1fr);
-      gap: 4px;
-      width: 100%;
-      max-width: 450px;
-      flex-shrink: 0;
-    }
-    #number-pad button {
-      padding: 12px 0;
-      font-size: 18px;
-      border-radius: 6px;
-      border: 1px solid #888;
-      background: white;
-    }
-    #number-pad button:active {
-      background: #e0eaff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin:0;
+      padding:6px;
+      height:100vh;
+      box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      background:#f4f4f4;
+      overflow:hidden; /* ensure no scrolling */
     }
 
-    @media (max-width: 480px) {
-      #number-pad button {
-        padding: 10px 0;
-        font-size: 16px;
-      }
-    } {
-      background: #ffd;
+    h1{font-size:clamp(16px,2.6vw,20px);margin:6px 0}
+
+    /* Board container scales to available space and stays square */
+    #sudoku-board{
+      display:grid;
+      grid-template-columns:repeat(9,1fr);
+      grid-template-rows:repeat(9,1fr);
+      width:min(92vmin,92vw);
+      max-width:520px;
+      aspect-ratio:1/1;
+      background:#fff;
+      border:2px solid #222;
+      box-shadow:0 6px 18px rgba(0,0,0,0.08);
+      touch-action:manipulation;
+      user-select:none;
     }
-  @media (max-width: 480px) {
-      #sudoku-board {
-        width: 100vw;
-        max-width: none;
-        border-width: 2px;
-      }
-      .cell {
-        font-size: clamp(12px, 4vw, 20px);
-        border-width: 0.5px;
-      }
-      #controls button {
-        flex: 1 1 calc(50% - 10px);
-        padding: 10px;
-        font-size: 14px;
-      }
-      #controls {
-        gap: 8px;
-      }
-      #timer {
-        font-size: 18px;
-      }
+
+    .cell{
+      border:1px solid #bdbdbd;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      font-size:clamp(14px,3.2vw,22px);
+      min-width:var(--cell-min);
+      min-height:var(--cell-min);
+      padding:0;
+      box-sizing:border-box;
+      background:transparent;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .cell.fixed{background:#efefef;font-weight:600}
+    .cell.selected{background:#e8f3ff}
+    .cell.hint{background:#e8ffe8}
+
+    /* thick borders for 3x3 boxes (applied by JS classes) */
+    .thick-top{border-top-width:3px}
+    .thick-left{border-left-width:3px}
+    .thick-right{border-right-width:3px}
+    .thick-bottom{border-bottom-width:3px}
+
+    /* pencil marks as small 3x3 grid inside cell */
+    .pencil-grid{position:absolute;inset:3px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);font-size:10px;color:#666;pointer-events:none}
+    .pencil-grid div{display:flex;align-items:center;justify-content:center}
+
+    /* controls and keypad */
+    #controls{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:520px}
+    #controls button{padding:8px 10px;font-size:14px;border-radius:6px;border:1px solid #999;background:#fff}
+    #controls button.active{background:#ffd}
+
+    #number-pad{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-top:8px;width:100%;max-width:520px}
+    #number-pad button{padding:10px 0;font-size:16px;border-radius:6px;border:1px solid #999;background:#fff}
+
+    #timer{margin-top:8px;font-size:14px}
+    #commit-info{margin-top:8px;font-size:13px;color:#333;text-align:center;max-width:520px}
+
+    /* small screens tweaks */
+    @media (max-height:600px){
+      #sudoku-board{width:86vmin}
+    }
+    @media (max-width:420px){
+      #number-pad button{font-size:14px;padding:8px 0}
+      #controls button{padding:8px; font-size:13px}
+      .pencil-grid{inset:2px}
     }
   </style>
 </head>
 <body>
   <h1>Sudoku</h1>
-  <div id="sudoku-board"></div>
+  <div id="sudoku-board" aria-label="Sudoku board" role="grid"></div>
+
   <div id="controls">
     <button id="new-game">New Puzzle</button>
     <button id="hint">Hint</button>
-    <button id="pencil-mode">Pencil Mode</button>
+    <button id="pencil-mode" aria-pressed="false">Pencil Mode</button>
   </div>
 
-  <!-- Mobile Number Pad -->
-  <div id="number-pad">
+  <div id="number-pad" aria-hidden="false">
     <button data-num="1">1</button>
     <button data-num="2">2</button>
     <button data-num="3">3</button>
@@ -159,229 +112,192 @@
   <div id="timer">00:00</div>
   <div id="commit-info">Loading latest commit info...</div>
 
+  <!-- small build marker -->
+  <div id="build-marker" style="position:fixed;bottom:10px;right:10px;background:#4caf50;color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,0.25);opacity:0;transition:opacity .4s">Updated ✔</div>
+
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const boardElement = document.getElementById('sudoku-board');
-      const timerElement = document.getElementById('timer');
-      const pencilButton = document.getElementById('pencil-mode');
-      let selectedCell = null;
-      let pencilMode = false;
-      let timer = 0;
-      let timerInterval;
+  (function(){
+    'use strict';
+    // DOM references
+    const boardEl = document.getElementById('sudoku-board');
+    const timerEl = document.getElementById('timer');
+    const newBtn = document.getElementById('new-game');
+    const hintBtn = document.getElementById('hint');
+    const pencilBtn = document.getElementById('pencil-mode');
+    const numPad = document.getElementById('number-pad');
+    const commitInfoEl = document.getElementById('commit-info');
+    const buildMarker = document.getElementById('build-marker');
 
-      function startTimer() {
-        clearInterval(timerInterval);
-        timer = 0;
-        timerInterval = setInterval(() => {
-          timer++;
-          const minutes = String(Math.floor(timer / 60)).padStart(2, '0');
-          const seconds = String(timer % 60).padStart(2, '0');
-          timerElement.textContent = `${minutes}:${seconds}`;
-        }, 1000);
-      }
+    let selected = null;
+    let pencilMode = false; // toggle
+    let timer = 0; let timerInterval = null;
+    let solution = null; // filled board
 
-      function generateSudoku() {
-        const board = Array.from({ length: 9 }, () => Array(9).fill(0));
-        solve(board);
-        removeCells(board, 50);
-        return board;
-      }
+    // --- Timer ---
+    function startTimer(){clearInterval(timerInterval);timer=0;timerInterval=setInterval(()=>{timer++;const mm=String(Math.floor(timer/60)).padStart(2,'0');const ss=String(timer%60).padStart(2,'0');timerEl.textContent=`${mm}:${ss}`},1000)}
 
-      function solve(board) {
-        for (let row = 0; row < 9; row++) {
-          for (let col = 0; col < 9; col++) {
-            if (board[row][col] === 0) {
-              const nums = shuffle([1,2,3,4,5,6,7,8,9]);
-              for (let num of nums) {
-                if (isValid(board, row, col, num)) {
-                  board[row][col] = num;
-                  if (solve(board)) return true;
-                  board[row][col] = 0;
-                }
+    // --- Sudoku generation (robust backtracking fill) ---
+    function generateSolvedBoard(){
+      const board=Array.from({length:9},()=>Array(9).fill(0));
+      fillBoard(board);
+      return board;
+    }
+
+    function fillBoard(board){
+      for(let r=0;r<9;r++){
+        for(let c=0;c<9;c++){
+          if(board[r][c]===0){
+            const nums=[1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
+            for(const n of nums){
+              if(isValid(board,r,c,n)){
+                board[r][c]=n;
+                if(fillBoard(board)) return true;
+                board[r][c]=0;
               }
-              return false;
             }
-          }
-        }
-        return true;
-      }
-
-      function isValid(board, r, c, n) {
-        for (let i = 0; i < 9; i++) {
-          if (board[r][i] === n || board[i][c] === n) return false;
-        }
-        const br = Math.floor(r / 3) * 3;
-        const bc = Math.floor(c / 3) * 3;
-        for (let i = 0; i < 3; i++) {
-          for (let j = 0; j < 3; j++) {
-            if (board[br + i][bc + j] === n) return false;
-          }
-        }
-        return true;
-      }
-
-      function removeCells(board, count) {
-        while (count--) {
-          const r = Math.floor(Math.random() * 9);
-          const c = Math.floor(Math.random() * 9);
-          board[r][c] = 0;
-        }
-      }
-
-      function shuffle(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-      }
-
-      function renderBoard(board) {
-        boardElement.innerHTML = '';
-        for (let r = 0; r < 9; r++) {
-          for (let c = 0; c < 9; c++) {
-            const div = document.createElement('div');
-            div.className = 'cell';
-            div.dataset.row = r;
-            div.dataset.col = c;
-            if (board[r][c] !== 0) {
-              div.textContent = board[r][c];
-              div.classList.add('fixed');
-            }
-            div.addEventListener('click', () => selectCell(div));
-            boardElement.appendChild(div);
-          }
-        }
-      }
-
-      function selectCell(cell) {
-        if (selectedCell) selectedCell.classList.remove('selected');
-        selectedCell = cell;
-        selectedCell.classList.add('selected');
-      }
-
-      document.addEventListener('keydown', (e) => handleInput(e.key, e.shiftKey));
-
-      function handleInput(key, shiftHeld) {
-        if (!selectedCell) return;
-        if (!/^[1-9]$/.test(key)) return;
-        const isPencil = pencilMode || shiftHeld;
-
-        if (isPencil) {
-          let mark = selectedCell.querySelector(`.pencil[data-num='${key}']`);
-          if (!mark) {
-            mark = document.createElement('div');
-            mark.className = 'pencil';
-            mark.dataset.num = key;
-            mark.textContent = key;
-            selectedCell.appendChild(mark);
-          } else {
-            mark.remove();
-          }
-        } else if (!selectedCell.classList.contains('fixed')) {
-          selectedCell.textContent = key;
-          selectedCell.querySelectorAll('.pencil').forEach(p => p.remove());
-        }
-      }
-
-      // Mobile keypad input
-      document.querySelectorAll('#number-pad button').forEach(btn => {
-        btn.addEventListener('click', () => handleInput(btn.dataset.num, false));
-      });
-
-      pencilButton.addEventListener('click', () => {
-        pencilMode = !pencilMode;
-        pencilButton.classList.toggle('active', pencilMode);
-      });
-
-      function highlightHint() {
-        const cells = [...document.querySelectorAll('.cell')];
-        cells.forEach(c => c.classList.remove('hint'));
-        const empty = cells.filter(c => !c.textContent || !c.classList.contains('fixed'));
-        const target = empty[Math.floor(Math.random() * empty.length)];
-        if (target) target.classList.add('hint');
-      }
-
-      function timeAgo(time) {
-        const diff = (Date.now() - time.getTime()) / 1000;
-        const intervals = [
-          { label: 'year', secs: 31536000 },
-          { label: 'month', secs: 2592000 },
-          { label: 'day', secs: 86400 },
-          { label: 'hour', secs: 3600 },
-          { label: 'minute', secs: 60 },
-          { label: 'second', secs: 1 }
-        ];
-        for (const i of intervals) {
-          const val = Math.floor(diff / i.secs);
-          if (val >= 1) return `${val} ${i.label}${val > 1 ? 's' : ''}`;
-        }
-        return 'just now';
-      }
-
-      async function loadCommitInfo() {
-        const commitInfo = document.getElementById('commit-info');
-
-        async function checkPagesReady() {
-          try {
-            const pagesCheck = await fetch('https://boredguy.github.io/sudoku/index.html', { cache: 'no-cache' });
-            return pagesCheck.ok;
-          } catch {
             return false;
           }
         }
-
-        // Poll every 5 seconds until GitHub Pages is updated
-        async function pollUntilReady() {
-          const ready = await checkPagesReady();
-          if (!ready) {
-            commitInfo.textContent = 'Waiting for GitHub Pages to update...';
-            setTimeout(pollUntilReady, 5000);
-            return;
-          }
-          loadCommitDetails();
-        }
-
-        async function loadCommitDetails() {
-          try {
-            const res = await fetch('https://api.github.com/repos/BoredGuy/sudoku/commits?path=index.html');
-            if (!res.ok) throw new Error('Network response was not ok');
-
-            const data = await res.json();
-            if (data && data.length) {
-              const commit = data[0];
-              const msg = commit.commit.message;
-              const author = commit.commit.author.name;
-              const dateObj = new Date(commit.commit.author.date);
-              const localDate = dateObj.toLocaleString(undefined, { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
-              commitInfo.textContent = `Latest Commit: "${msg}" by ${author} on ${localDate} (${timeAgo(dateObj)} ago)`;
-            } else {
-              commitInfo.textContent = 'No commit data available.';
-            }
-          } catch (e) {
-            console.error(e);
-            commitInfo.textContent = 'Failed to load commit info.';
-          }
-        }
-
-        pollUntilReady();
       }
+      return true;
+    }
 
-      window.addEventListener('load', loadCommitInfo);
-    });
-  </script>
-  <!-- Build Update Marker -->
-  <div id="build-marker" style="position:fixed; bottom:10px; right:10px; background:#4caf50; color:white; padding:6px 10px; border-radius:6px; font-size:12px; z-index:9999; box-shadow:0 2px 6px rgba(0,0,0,0.3); opacity:0; transition:opacity 0.4s;">Updated ✔</div>
+    function isValid(board,r,c,n){
+      for(let i=0;i<9;i++){if(board[r][i]===n||board[i][c]===n) return false}
+      const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+      for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(board[br+i][bc+j]===n) return false;
+      return true;
+    }
 
-  <script>
-    // Show the update marker briefly to confirm new build is active
-    window.addEventListener('DOMContentLoaded', () => {
-      const marker = document.getElementById('build-marker');
-      if (marker) {
-        marker.style.opacity = '1';
-        setTimeout(() => marker.style.opacity = '0', 2500);
+    function removeCells(board,count){
+      let attempts=count;
+      while(attempts-->0){
+        const r=Math.floor(Math.random()*9), c=Math.floor(Math.random()*9);
+        board[r][c]=0;
       }
+    }
+
+    // --- Render board ---
+    function renderBoard(puzzle){
+      boardEl.innerHTML='';
+      // create 81 cells
+      for(let r=0;r<9;r++){
+        for(let c=0;c<9;c++){
+          const cell=document.createElement('div');
+          cell.className='cell';
+          cell.dataset.row=r; cell.dataset.col=c;
+
+          // bold box borders
+          if(r%3===0) cell.classList.add('thick-top');
+          if(c%3===0) cell.classList.add('thick-left');
+          if(c===8) cell.classList.add('thick-right');
+          if(r===8) cell.classList.add('thick-bottom');
+
+          if(puzzle[r][c]!==0){
+            cell.textContent=puzzle[r][c];
+            cell.classList.add('fixed');
+          } else {
+            // add pencil grid container (kept empty unless marks added)
+            const pg=document.createElement('div'); pg.className='pencil-grid';
+            for(let k=1;k<=9;k++){const d=document.createElement('div'); d.dataset.num=k; pg.appendChild(d)}
+            cell.appendChild(pg);
+          }
+
+          cell.addEventListener('click',()=>selectCell(cell));
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function selectCell(cell){
+      if(selected) selected.classList.remove('selected');
+      selected=cell; cell.classList.add('selected');
+    }
+
+    // --- Input handling ---
+    function handleInput(key, shiftHeld){
+      if(!selected) return;
+      if(!/^[1-9]$/.test(key)) return;
+      const isPencil = pencilMode || shiftHeld;
+      if(selected.classList.contains('fixed')) return;
+
+      if(isPencil){
+        // toggle pencil inside pencil-grid spot
+        const pg = selected.querySelector('.pencil-grid');
+        if(!pg) return;
+        const spot = [...pg.children].find(d=>d.dataset.num===key);
+        if(spot.textContent) spot.textContent=''; else spot.textContent=key;
+      } else {
+        // set final value and clear pencils
+        selected.textContent=key;
+        const pg = selected.querySelector('.pencil-grid'); if(pg) [...pg.children].forEach(d=>d.textContent='');
+      }
+    }
+
+    // keyboard
+    window.addEventListener('keydown', (e)=>{
+      handleInput(e.key, e.shiftKey);
+      // navigation
+      if(!selected) return;
+      const r = parseInt(selected.dataset.row,10); const c = parseInt(selected.dataset.col,10);
+      if(e.key==='ArrowUp'&&r>0) selectCell(boardEl.querySelector(`[data-row='${r-1}'][data-col='${c}']`));
+      if(e.key==='ArrowDown'&&r<8) selectCell(boardEl.querySelector(`[data-row='${r+1}'][data-col='${c}']`));
+      if(e.key==='ArrowLeft'&&c>0) selectCell(boardEl.querySelector(`[data-row='${r}'][data-col='${c-1}']`));
+      if(e.key==='ArrowRight'&&c<8) selectCell(boardEl.querySelector(`[data-row='${r}'][data-col='${c+1}']`));
+      if(e.key==='Backspace'||e.key==='Delete'){ if(selected && !selected.classList.contains('fixed')) { selected.textContent=''; const pg=selected.querySelector('.pencil-grid'); if(pg) [...pg.children].forEach(d=>d.textContent=''); } }
     });
+
+    // mobile number pad
+    [...numPad.querySelectorAll('button')].forEach(btn=>btn.addEventListener('click',()=>handleInput(btn.dataset.num,false)));
+
+    // pencil toggle
+    pencilBtn.addEventListener('click',()=>{ pencilMode=!pencilMode; pencilBtn.classList.toggle('active',pencilMode); pencilBtn.setAttribute('aria-pressed',String(pencilMode)); });
+
+    // hint: highlight one empty cell
+    hintBtn.addEventListener('click',()=>{
+      [...boardEl.querySelectorAll('.cell')].forEach(c=>c.classList.remove('hint'));
+      const empties = [...boardEl.querySelectorAll('.cell')].filter(c=>!c.classList.contains('fixed') && (!c.textContent || c.textContent.trim()===''));
+      if(empties.length===0) return; const t=empties[Math.floor(Math.random()*empties.length)]; t.classList.add('hint'); selectCell(t);
+    });
+
+    // new game
+    newBtn.addEventListener('click', ()=>{ startGame(); });
+
+    // --- Commit info polling (wait until GitHub Pages live) ---
+    async function timeAgo(date){const diff=(Date.now()-date.getTime())/1000;const intervals=[{label:'year',secs:31536000},{label:'month',secs:2592000},{label:'day',secs:86400},{label:'hour',secs:3600},{label:'minute',secs:60},{label:'second',secs:1}];for(const i of intervals){const v=Math.floor(diff/i.secs); if(v>=1) return `${v} ${i.label}${v>1?'s':''}`;}return 'just now'}
+
+    async function loadCommitInfo(){
+      commitInfoEl.textContent='Checking GitHub Pages...';
+      async function pagesReady(){try{const r=await fetch('https://boredguy.github.io/sudoku/index.html',{cache:'no-cache'});return r.ok}catch{return false}}
+      async function poll(){const ok=await pagesReady(); if(!ok){commitInfoEl.textContent='Waiting for GitHub Pages to update...'; setTimeout(poll,5000); return;} // live -> fetch commit
+        try{
+          const r=await fetch('https://api.github.com/repos/BoredGuy/sudoku/commits?path=index.html'); if(!r.ok) throw new Error('GitHub API error'); const data=await r.json(); if(data && data.length){const c=data[0];const msg=c.commit.message;const author=c.commit.author?c.commit.author.name:'unknown';const dateObj=new Date(c.commit.author.date);const localDate=dateObj.toLocaleString(undefined,{timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});commitInfoEl.textContent=`Latest Commit: "${msg}" by ${author} on ${localDate} (${await timeAgo(dateObj)} ago)`; } else commitInfoEl.textContent='No commit data.'}catch(err){console.error(err);commitInfoEl.textContent='Failed to load commit info.'}}
+      poll();
+    }
+
+    // build marker show
+    function flashBuildMarker(){ if(!buildMarker) return; buildMarker.style.opacity='1'; setTimeout(()=>buildMarker.style.opacity='0',2500) }
+
+    // --- start game ---
+    function startGame(){
+      const solved = generateSolvedBoard();
+      solution = solved.map(r=>r.slice());
+      const puzzle = solved.map(r=>r.slice());
+      // remove cells depending on simple difficulty
+      removeCells(puzzle, 45);
+      renderBoard(puzzle);
+      startTimer();
+      flashBuildMarker();
+    }
+
+    // initialize
+    startGame();
+    // load commit info in background
+    loadCommitInfo();
+
+    // expose for debug (optional)
+    window._sudoku={startGame,renderBoard};
+  })();
   </script>
 </body>
 </html>
