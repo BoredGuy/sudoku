@@ -947,11 +947,7 @@ const GITHUB_REQUEST_OPTIONS = {
 };
 
 
-/*
- * Check deployment information every 30 seconds.
- */
-const DEPLOYMENT_CHECK_INTERVAL_MS =
-    30 * 1000;
+
 
 
 /* =========================================================
@@ -1264,12 +1260,21 @@ function setDeploymentIndicator(
    ========================================================= */
 
 /*
- * Fetch JSON from a public GitHub endpoint.
+ * Maximum time allowed for an individual GitHub request.
+ */
+const GITHUB_REQUEST_TIMEOUT_MS =
+    8000;
+
+
+/*
+ * Fetch JSON from a GitHub endpoint with:
  *
- * A timestamp query parameter prevents a cached API
- * response from being reused.
+ * - cache busting
+ * - no-store caching
+ * - an 8-second timeout
  */
 async function fetchGitHubJson(endpoint) {
+
     const separator =
         endpoint.includes("?")
             ? "&"
@@ -1281,22 +1286,67 @@ async function fetchGitHubJson(endpoint) {
         "cacheBust=" +
         Date.now();
 
-    const response =
-        await fetch(
-            url,
-            {
-                method: "GET",
-                cache: "no-store"
-            }
+
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            GITHUB_REQUEST_TIMEOUT_MS
         );
 
-    if (!response.ok) {
-        throw new Error(
-            `HTTP ${response.status}`
+
+    try {
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: "GET",
+                    cache: "no-store",
+                    signal: controller.signal
+                }
+            );
+
+
+        if (!response.ok) {
+
+            const error =
+                new Error(
+                    `HTTP ${response.status}`
+                );
+
+            error.status =
+                response.status;
+
+            throw error;
+        }
+
+
+        return await response.json();
+
+    } catch (error) {
+
+        if (
+            error &&
+            error.name === "AbortError"
+        ) {
+            throw new Error(
+                "Request timed out"
+            );
+        }
+
+        throw error;
+
+    } finally {
+
+        clearTimeout(
+            timeout
         );
     }
-
-    return response.json();
 }
 
 
@@ -1304,6 +1354,7 @@ async function fetchGitHubJson(endpoint) {
  * Fetch the latest GitHub Pages build.
  */
 async function getLatestPagesBuild() {
+
     return fetchGitHubJson(
         `${GITHUB_REPOSITORY_API}` +
         `/pages/builds/latest`
@@ -1312,9 +1363,10 @@ async function getLatestPagesBuild() {
 
 
 /*
- * Fetch the latest commit on the main branch.
+ * Fetch the latest commit on main.
  */
 async function getLatestMainCommit() {
+
     return fetchGitHubJson(
         `${GITHUB_REPOSITORY_API}` +
         `/commits/${encodeURIComponent(
@@ -1327,8 +1379,7 @@ async function getLatestMainCommit() {
 /*
  * Check deployment information once.
  *
- * This function is intentionally NOT polled.
- * It is called only during page initialization.
+ * This is called only when the page loads.
  */
 async function checkDeploymentStatus() {
 
@@ -1336,14 +1387,15 @@ async function checkDeploymentStatus() {
         "Checking deployment…"
     );
 
+
     try {
-        const [
-            pagesBuild,
-            mainCommit
-        ] = await Promise.all([
-            getLatestPagesBuild(),
-            getLatestMainCommit()
-        ]);
+
+        const pagesBuild =
+            await getLatestPagesBuild();
+
+
+        const mainCommit =
+            await getLatestMainCommit();
 
 
         const deployedSha =
@@ -1353,6 +1405,7 @@ async function checkDeploymentStatus() {
         const latestSha =
             mainCommit &&
             mainCommit.sha;
+
 
         const deploymentStatus =
             (
@@ -1391,6 +1444,7 @@ async function checkDeploymentStatus() {
             !deployedSha ||
             !latestSha
         ) {
+
             setDeploymentIndicator(
                 "Deployment data unavailable",
                 "error"
@@ -1401,12 +1455,13 @@ async function checkDeploymentStatus() {
 
 
         /*
-         * Report an in-progress Pages build.
+         * Pages is still processing a deployment.
          */
         if (
             deploymentStatus &&
             deploymentStatus !== "built"
         ) {
+
             setDeploymentIndicator(
                 "PAGES " +
                 deploymentStatus.toUpperCase() +
@@ -1419,12 +1474,13 @@ async function checkDeploymentStatus() {
 
 
         /*
-         * The Pages build and main branch point to
-         * exactly the same commit.
+         * The deployed Pages build corresponds
+         * exactly to the latest main commit.
          */
         if (
             deployedSha === latestSha
         ) {
+
             setDeploymentIndicator(
                 "LIVE " +
                 deployedShortSha +
@@ -1443,14 +1499,14 @@ async function checkDeploymentStatus() {
         /*
          * Different SHAs.
          *
-         * Compare timestamps to determine whether
-         * the repository has a newer commit waiting
-         * to be deployed.
+         * Determine whether the main-branch commit
+         * is newer than the deployed Pages build.
          */
         const mainCommitDate =
             mainCommit.commit &&
             mainCommit.commit.author &&
             mainCommit.commit.author.date;
+
 
         const deployedDate =
             pagesBuild.updated_at ||
@@ -1474,6 +1530,7 @@ async function checkDeploymentStatus() {
             mainTimestamp >
                 deployedTimestamp
         ) {
+
             setDeploymentIndicator(
                 "LIVE " +
                 deployedShortSha +
@@ -1509,6 +1566,31 @@ async function checkDeploymentStatus() {
             latestShortSha
         );
 
+    } catch (error) {
+
+        /*
+         * Never leave the UI stuck on "Checking deployment…".
+         */
+        const message =
+            error &&
+            error.message
+                ? error.message
+                : "Unknown error";
+
+
+        setDeploymentIndicator(
+            "GitHub: " +
+            message,
+            "error"
+        );
+
+
+        console.error(
+            "Sudoku deployment check failed:",
+            error
+        );
+    }
+}
     } catch (error) {
 
         /*
@@ -3601,15 +3683,13 @@ startScreen.classList.remove(
 updateContinueButton();
 
 /*
- * Check GitHub Pages deployment immediately,
- * then every 30 seconds.
+ * Check GitHub Pages deployment once when the
+ * page is loaded. There is intentionally no
+ * recurring polling.
  */
 checkDeploymentStatus();
 
-setInterval(
-    checkDeploymentStatus,
-    DEPLOYMENT_CHECK_INTERVAL_MS
-);
+
 </script>
 
 </body>
