@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#f7f7f5">
 <title>Sudoku</title>
 
@@ -27,6 +29,8 @@
         --user: #315f8c;
         --conflict: #a52a2a;
         --candidate: #686868;
+
+        --update: #a52a2a;
     }
 
     * {
@@ -81,7 +85,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 15px;
     }
 
     .brand {
@@ -173,13 +176,17 @@
         background: var(--selected);
     }
 
-    /* Pre-filled cells always remain light grey. */
+    /*
+     * Pre-filled cells remain light grey.
+     */
     .cell.given,
     .cell.given.related {
         background: var(--given-background);
     }
 
-    /* Selected pre-filled cell is darker blue. */
+    /*
+     * Selected pre-filled cell is darker blue.
+     */
     .cell.given.selected {
         background: var(--given-selected);
     }
@@ -273,17 +280,22 @@
     .controls {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
+
         border-top: 1px solid var(--ink);
         border-bottom: 1px solid var(--ink);
+
         margin-top: 15px;
     }
 
     .control-button {
         min-height: 47px;
+
         border: 0;
         border-right: 1px solid var(--rule);
+
         background: transparent;
         color: var(--ink);
+
         cursor: pointer;
 
         font-family:
@@ -293,6 +305,7 @@
 
         font-size: .68rem;
         font-weight: 700;
+
         text-transform: uppercase;
         letter-spacing: .06em;
     }
@@ -334,8 +347,54 @@
         color: var(--muted);
         font-size: .61rem;
         line-height: 1.4;
+
         text-transform: uppercase;
         letter-spacing: .05em;
+    }
+
+    /* -----------------------------------------------------
+       GitHub deployment indicator
+       ----------------------------------------------------- */
+
+    .deployment-indicator {
+        margin-top: 10px;
+
+        min-height: 1.35em;
+
+        font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+
+        color: var(--muted);
+
+        font-size: .57rem;
+        line-height: 1.35;
+
+        text-transform: uppercase;
+        letter-spacing: .045em;
+
+        text-align: center;
+
+        font-variant-numeric: tabular-nums;
+    }
+
+    .deployment-indicator.update-pending {
+        color: var(--update);
+        font-weight: 700;
+    }
+
+    .deployment-indicator.error {
+        color: var(--muted);
+    }
+
+    .deployment-indicator a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .deployment-indicator a:hover {
+        text-decoration: underline;
     }
 
     /* -----------------------------------------------------
@@ -382,11 +441,13 @@
 
     .difficulty-button {
         min-height: 48px;
+
         border: 0;
         border-right: 1px solid var(--rule);
 
         background: transparent;
         color: var(--ink);
+
         cursor: pointer;
 
         font-family:
@@ -396,6 +457,7 @@
 
         font-size: .68rem;
         font-weight: 700;
+
         text-transform: uppercase;
         letter-spacing: .08em;
     }
@@ -420,7 +482,6 @@
         width: 100%;
         min-height: 54px;
 
-        border: 0;
         cursor: pointer;
 
         font-family:
@@ -430,11 +491,13 @@
 
         font-size: .72rem;
         font-weight: 700;
+
         text-transform: uppercase;
         letter-spacing: .1em;
     }
 
     #startButton {
+        border: 0;
         background: var(--ink);
         color: white;
     }
@@ -528,6 +591,7 @@
 
     .completion-actions button {
         min-height: 48px;
+
         border: 0;
         border-right: 1px solid var(--rule);
 
@@ -540,6 +604,7 @@
 
         font-size: .68rem;
         font-weight: 700;
+
         text-transform: uppercase;
         letter-spacing: .07em;
     }
@@ -615,6 +680,10 @@
         .footer {
             font-size: .55rem;
         }
+
+        .deployment-indicator {
+            font-size: .5rem;
+        }
     }
 
     @media (max-height: 700px) and (min-width: 481px) {
@@ -651,6 +720,7 @@
         <h2>Sudoku</h2>
 
         <div class="difficulty-picker">
+
             <button
                 class="difficulty-button active"
                 data-difficulty="easy">
@@ -668,6 +738,7 @@
                 data-difficulty="hard">
                 Hard
             </button>
+
         </div>
 
         <div class="start-actions">
@@ -682,6 +753,13 @@
                 Continue
             </button>
 
+        </div>
+
+        <div
+            id="startDeploymentIndicator"
+            class="deployment-indicator"
+            aria-live="polite">
+            Checking deployment…
         </div>
 
     </div>
@@ -701,9 +779,11 @@
     </header>
 
     <section class="game-heading">
+
         <div class="heading-row">
 
             <div class="game-meta">
+
                 <span id="difficultyDisplay">
                     EASY
                 </span>
@@ -711,10 +791,13 @@
                 <span id="timer">
                     00:00
                 </span>
+
             </div>
 
         </div>
+
     </section>
+
 
     <section
         class="board-wrap"
@@ -727,6 +810,7 @@
         </div>
 
     </section>
+
 
     <section class="controls">
 
@@ -756,7 +840,9 @@
 
     </section>
 
+
     <footer class="footer">
+
         <span>
             1–9 Enter Number
         </span>
@@ -768,7 +854,16 @@
         <span>
             ← ↑ ↓ → Navigate
         </span>
+
     </footer>
+
+
+    <div
+        id="gameDeploymentIndicator"
+        class="deployment-indicator"
+        aria-live="polite">
+        Checking deployment…
+    </div>
 
 </main>
 
@@ -815,6 +910,47 @@
 
 <script>
 "use strict";
+
+
+/* =========================================================
+   GitHub configuration
+   ========================================================= */
+
+const GITHUB_OWNER =
+    "BoredGuy";
+
+const GITHUB_REPOSITORY =
+    "sudoku";
+
+const GITHUB_BRANCH =
+    "main";
+
+const GITHUB_API_BASE =
+    "https://api.github.com";
+
+const GITHUB_REPOSITORY_API =
+    `${GITHUB_API_BASE}/repos/` +
+    `${GITHUB_OWNER}/${GITHUB_REPOSITORY}`;
+
+
+/*
+ * GitHub's current API documentation recommends
+ * the versioned API header. The resources are public,
+ * so no authentication is required here.
+ */
+const GITHUB_HEADERS = {
+    "Accept":
+        "application/vnd.github+json",
+    "X-GitHub-Api-Version":
+        "2026-03-10"
+};
+
+
+/*
+ * Check deployment information every 30 seconds.
+ */
+const DEPLOYMENT_CHECK_INTERVAL_MS =
+    30 * 1000;
 
 
 /* =========================================================
@@ -910,6 +1046,16 @@ const continueButton =
         "continueButton"
     );
 
+const startDeploymentIndicator =
+    document.getElementById(
+        "startDeploymentIndicator"
+    );
+
+const gameDeploymentIndicator =
+    document.getElementById(
+        "gameDeploymentIndicator"
+    );
+
 const pencilButton =
     document.getElementById(
         "pencilButton"
@@ -957,11 +1103,418 @@ const difficultyButtons =
 
 
 /* =========================================================
+   GitHub deployment information
+   ========================================================= */
+
+/*
+ * GitHub exposes the latest Pages build through:
+ *
+ * /repos/{owner}/{repo}/pages/builds/latest
+ *
+ * That response includes the commit SHA associated
+ * with the Pages build.
+ *
+ * GitHub also exposes the latest commit on main
+ * through:
+ *
+ * /repos/{owner}/{repo}/commits/main
+ *
+ * Comparing these two SHAs tells us whether main
+ * contains code newer than the deployed Pages build.
+ */
+
+
+/*
+ * Convert a date into a compact relative time.
+ */
+function formatRelativeTime(
+    dateString
+) {
+    const timestamp =
+        Date.parse(dateString);
+
+    if (
+        Number.isNaN(timestamp)
+    ) {
+        return "";
+    }
+
+    const seconds =
+        Math.max(
+            0,
+            Math.floor(
+                (
+                    Date.now() -
+                    timestamp
+                ) / 1000
+            )
+        );
+
+    if (seconds < 60) {
+        return "just now";
+    }
+
+    const minutes =
+        Math.floor(
+            seconds / 60
+        );
+
+    if (minutes < 60) {
+        return (
+            minutes +
+            (minutes === 1
+                ? " min ago"
+                : " mins ago")
+        );
+    }
+
+    const hours =
+        Math.floor(
+            minutes / 60
+        );
+
+    if (hours < 24) {
+        return (
+            hours +
+            (hours === 1
+                ? " hr ago"
+                : " hrs ago")
+        );
+    }
+
+    const days =
+        Math.floor(
+            hours / 24
+        );
+
+    if (days < 7) {
+        return (
+            days +
+            (days === 1
+                ? " day ago"
+                : " days ago")
+        );
+    }
+
+    return new Intl.DateTimeFormat(
+        undefined,
+        {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        }
+    ).format(
+        new Date(timestamp)
+    );
+}
+
+
+/*
+ * Return the short 7-character SHA.
+ */
+function shortSha(sha) {
+    if (
+        typeof sha !== "string"
+    ) {
+        return "";
+    }
+
+    return sha.slice(0, 7);
+}
+
+
+/*
+ * Update both deployment indicators.
+ */
+function setDeploymentIndicator(
+    text,
+    stateClass = ""
+) {
+    const indicators = [
+        startDeploymentIndicator,
+        gameDeploymentIndicator
+    ];
+
+    indicators.forEach(
+        indicator => {
+            if (!indicator) {
+                return;
+            }
+
+            indicator.textContent =
+                text;
+
+            indicator.classList.remove(
+                "update-pending",
+                "error"
+            );
+
+            if (stateClass) {
+                indicator.classList.add(
+                    stateClass
+                );
+            }
+        }
+    );
+}
+
+
+/*
+ * Fetch the latest successful/current Pages build.
+ */
+async function getLatestPagesBuild() {
+    const url =
+        `${GITHUB_REPOSITORY_API}` +
+        `/pages/builds/latest` +
+        `?cacheBust=${Date.now()}`;
+
+    const response =
+        await fetch(
+            url,
+            {
+                method: "GET",
+                headers: GITHUB_HEADERS,
+                cache: "no-store"
+            }
+        );
+
+    if (!response.ok) {
+        throw new Error(
+            "Unable to retrieve GitHub Pages build."
+        );
+    }
+
+    return response.json();
+}
+
+
+/*
+ * Fetch the latest commit on main.
+ */
+async function getLatestMainCommit() {
+    const url =
+        `${GITHUB_REPOSITORY_API}` +
+        `/commits/${encodeURIComponent(
+            GITHUB_BRANCH
+        )}` +
+        `?cacheBust=${Date.now()}`;
+
+    const response =
+        await fetch(
+            url,
+            {
+                method: "GET",
+                headers: GITHUB_HEADERS,
+                cache: "no-store"
+            }
+        );
+
+    if (!response.ok) {
+        throw new Error(
+            "Unable to retrieve latest GitHub commit."
+        );
+    }
+
+    return response.json();
+}
+
+
+/*
+ * Check deployment data and compare it with main.
+ */
+async function checkDeploymentStatus() {
+    /*
+     * Show a useful state while the request is
+     * being performed.
+     */
+    setDeploymentIndicator(
+        "Checking deployment…"
+    );
+
+    try {
+        /*
+         * Fetch the two independent pieces of
+         * information in parallel.
+         */
+        const [
+            pagesBuild,
+            mainCommit
+        ] = await Promise.all([
+            getLatestPagesBuild(),
+            getLatestMainCommit()
+        ]);
+
+        const deployedSha =
+            pagesBuild.commit;
+
+        const latestSha =
+            mainCommit.sha;
+
+        /*
+         * Pages build status is normally "built".
+         */
+        const deploymentStatus =
+            pagesBuild.status || "";
+
+        const deployedShortSha =
+            shortSha(
+                deployedSha
+            );
+
+        const latestShortSha =
+            shortSha(
+                latestSha
+            );
+
+        const deployedTime =
+            formatRelativeTime(
+                pagesBuild.updated_at ||
+                pagesBuild.created_at
+            );
+
+        /*
+         * No SHA means the API response was not
+         * usable enough to establish deployment state.
+         */
+        if (
+            !deployedSha ||
+            !latestSha
+        ) {
+            setDeploymentIndicator(
+                "Deployment status unavailable",
+                "error"
+            );
+
+            return;
+        }
+
+        /*
+         * If the Pages build itself is not built yet,
+         * explicitly show that state.
+         */
+        if (
+            deploymentStatus &&
+            deploymentStatus !== "built"
+        ) {
+            setDeploymentIndicator(
+                "PAGES " +
+                deploymentStatus.toUpperCase() +
+                " · MAIN " +
+                latestShortSha
+            );
+
+            return;
+        }
+
+        /*
+         * Exact SHA equality means main currently points
+         * to the same commit that GitHub Pages deployed.
+         */
+        if (
+            deployedSha === latestSha
+        ) {
+            setDeploymentIndicator(
+                "LIVE " +
+                deployedShortSha +
+                (
+                    deployedTime
+                        ? " · " +
+                          deployedTime
+                        : ""
+                )
+            );
+
+            return;
+        }
+
+        /*
+         * A different SHA does not inherently mean that
+         * main is newer, so use the commit dates as a
+         * secondary indicator.
+         */
+        const mainCommitDate =
+            mainCommit.commit &&
+            mainCommit.commit.author &&
+            mainCommit.commit.author.date;
+
+        const deployedDate =
+            pagesBuild.updated_at ||
+            pagesBuild.created_at;
+
+        const mainTimestamp =
+            Date.parse(
+                mainCommitDate || ""
+            );
+
+        const deployedTimestamp =
+            Date.parse(
+                deployedDate || ""
+            );
+
+        /*
+         * Normal case: main is newer than the
+         * commit deployed by GitHub Pages.
+         */
+        if (
+            !Number.isNaN(mainTimestamp) &&
+            !Number.isNaN(deployedTimestamp) &&
+            mainTimestamp >
+                deployedTimestamp
+        ) {
+            setDeploymentIndicator(
+                "LIVE " +
+                deployedShortSha +
+                (
+                    deployedTime
+                        ? " · " +
+                          deployedTime
+                        : ""
+                ) +
+                " · UPDATE PENDING " +
+                latestShortSha,
+                "update-pending"
+            );
+
+            return;
+        }
+
+        /*
+         * Different SHA with no clear temporal ordering.
+         * Report both without claiming that one is newer.
+         */
+        setDeploymentIndicator(
+            "LIVE " +
+            deployedShortSha +
+            (
+                deployedTime
+                    ? " · " +
+                      deployedTime
+                    : ""
+            ) +
+            " · MAIN " +
+            latestShortSha
+        );
+
+    } catch (error) {
+        /*
+         * Keep the game fully functional if GitHub's
+         * API is unavailable, rate-limited, or blocked.
+         */
+        setDeploymentIndicator(
+            "Deployment status unavailable",
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
    Utilities
    ========================================================= */
 
 function shuffle(array) {
-    const result = array.slice();
+    const result =
+        array.slice();
 
     for (
         let i = result.length - 1;
@@ -970,7 +1523,8 @@ function shuffle(array) {
     ) {
         const j =
             Math.floor(
-                Math.random() * (i + 1)
+                Math.random() *
+                (i + 1)
             );
 
         [
@@ -988,8 +1542,11 @@ function shuffle(array) {
 
 function createEmptyGrid() {
     return Array.from(
-        { length: SIZE },
-        () => Array(SIZE).fill(0)
+        {
+            length: SIZE
+        },
+        () =>
+            Array(SIZE).fill(0)
     );
 }
 
@@ -1003,10 +1560,14 @@ function cloneGrid(grid) {
 
 function createEmptyCandidates() {
     return Array.from(
-        { length: SIZE },
+        {
+            length: SIZE
+        },
         () =>
             Array.from(
-                { length: SIZE },
+                {
+                    length: SIZE
+                },
                 () => []
             )
     );
@@ -1015,29 +1576,49 @@ function createEmptyCandidates() {
 
 function formatTime(seconds) {
     const minutes =
-        Math.floor(seconds / 60);
+        Math.floor(
+            seconds / 60
+        );
 
     const secs =
         seconds % 60;
 
     return (
-        String(minutes).padStart(2, "0") +
+        String(
+            minutes
+        ).padStart(
+            2,
+            "0"
+        ) +
         ":" +
-        String(secs).padStart(2, "0")
+        String(
+            secs
+        ).padStart(
+            2,
+            "0"
+        )
     );
 }
 
 
 function indexToRowCol(index) {
     return [
-        Math.floor(index / SIZE),
+        Math.floor(
+            index / SIZE
+        ),
         index % SIZE
     ];
 }
 
 
-function rowColToIndex(row, col) {
-    return row * SIZE + col;
+function rowColToIndex(
+    row,
+    col
+) {
+    return (
+        row * SIZE +
+        col
+    );
 }
 
 
@@ -1057,32 +1638,39 @@ function saveGame() {
     const savedGame = {
         version: 1,
 
-        solution: cloneGrid(
-            state.solution
-        ),
+        solution:
+            cloneGrid(
+                state.solution
+            ),
 
-        puzzle: cloneGrid(
-            state.puzzle
-        ),
+        puzzle:
+            cloneGrid(
+                state.puzzle
+            ),
 
-        board: cloneGrid(
-            state.board
-        ),
+        board:
+            cloneGrid(
+                state.board
+            ),
 
         candidates:
             state.candidates.map(
                 row =>
                     row.map(
                         cell =>
-                            Array.isArray(cell)
+                            Array.isArray(
+                                cell
+                            )
                                 ? cell.slice()
                                 : []
                     )
             ),
 
-        selected: state.selected,
+        selected:
+            state.selected,
 
-        difficulty: state.difficulty,
+        difficulty:
+            state.difficulty,
 
         pencilMode:
             state.pencilMode,
@@ -1097,12 +1685,13 @@ function saveGame() {
     try {
         localStorage.setItem(
             STORAGE_KEY,
-            JSON.stringify(savedGame)
+            JSON.stringify(
+                savedGame
+            )
         );
     } catch (error) {
         /*
-         * Storage may be unavailable.
-         * The game continues to work without it.
+         * Ignore storage restrictions.
          */
     }
 
@@ -1131,52 +1720,57 @@ function isValidGrid(grid) {
         return false;
     }
 
-    return grid.every(row =>
-        Array.isArray(row) &&
-        row.length === SIZE &&
-        row.every(
-            value =>
-                Number.isInteger(value) &&
-                value >= 0 &&
-                value <= 9
-        )
+    return grid.every(
+        row =>
+            Array.isArray(row) &&
+            row.length === SIZE &&
+            row.every(
+                value =>
+                    Number.isInteger(
+                        value
+                    ) &&
+                    value >= 0 &&
+                    value <= 9
+            )
     );
 }
 
 
-function isValidCandidates(candidates) {
+function isValidCandidates(
+    candidates
+) {
     if (
-        !Array.isArray(candidates) ||
+        !Array.isArray(
+            candidates
+        ) ||
         candidates.length !== SIZE
     ) {
         return false;
     }
 
-    return candidates.every(row =>
-        Array.isArray(row) &&
-        row.length === SIZE &&
-        row.every(cell =>
-            Array.isArray(cell) &&
-            cell.every(
-                value =>
-                    Number.isInteger(value) &&
-                    value >= 1 &&
-                    value <= 9
+    return candidates.every(
+        row =>
+            Array.isArray(row) &&
+            row.length === SIZE &&
+            row.every(
+                cell =>
+                    Array.isArray(cell) &&
+                    cell.every(
+                        value =>
+                            Number.isInteger(
+                                value
+                            ) &&
+                            value >= 1 &&
+                            value <= 9
+                    )
             )
-        )
     );
 }
 
 
-/*
- * Read and validate the saved game without
- * automatically starting it.
- *
- * This is important because every page load
- * must show the start screen first.
- */
 function readSavedGame() {
-    let savedGame = null;
+    let savedGame =
+        null;
 
     try {
         const raw =
@@ -1189,7 +1783,9 @@ function readSavedGame() {
         }
 
         savedGame =
-            JSON.parse(raw);
+            JSON.parse(
+                raw
+            );
     } catch (error) {
         clearSavedGame();
         return null;
@@ -1239,10 +1835,6 @@ function readSavedGame() {
 }
 
 
-/*
- * Show or hide the Continue button based on
- * whether a valid saved game exists.
- */
 function updateContinueButton() {
     const savedGame =
         readSavedGame();
@@ -1254,10 +1846,6 @@ function updateContinueButton() {
 }
 
 
-/*
- * Restore the saved game into the live state.
- * This function does NOT generate a new puzzle.
- */
 function continueSavedGame() {
     const savedGame =
         readSavedGame();
@@ -1313,11 +1901,6 @@ function continueSavedGame() {
     state.running = true;
     state.completed = false;
 
-    /*
-     * Automatic candidates are derived from the
-     * current board and therefore recalculated
-     * when the game is restored.
-     */
     if (
         state.autoCandidates
     ) {
@@ -1362,7 +1945,8 @@ function isValidPlacement(
         c++
     ) {
         if (
-            grid[row][c] === number
+            grid[row][c] ===
+            number
         ) {
             return false;
         }
@@ -1374,17 +1958,22 @@ function isValidPlacement(
         r++
     ) {
         if (
-            grid[r][col] === number
+            grid[r][col] ===
+            number
         ) {
             return false;
         }
     }
 
     const startRow =
-        Math.floor(row / BOX) * BOX;
+        Math.floor(
+            row / BOX
+        ) * BOX;
 
     const startCol =
-        Math.floor(col / BOX) * BOX;
+        Math.floor(
+            col / BOX
+        ) * BOX;
 
     for (
         let r = startRow;
@@ -1397,7 +1986,8 @@ function isValidPlacement(
             c++
         ) {
             if (
-                grid[r][c] === number
+                grid[r][c] ===
+                number
             ) {
                 return false;
             }
@@ -1491,7 +2081,9 @@ function solveGrid(grid) {
 
     for (
         const number of
-        shuffle(bestCandidates)
+        shuffle(
+            bestCandidates
+        )
     ) {
         grid[bestRow][bestCol] =
             number;
@@ -1502,7 +2094,8 @@ function solveGrid(grid) {
             return true;
         }
 
-        grid[bestRow][bestCol] = 0;
+        grid[bestRow][bestCol] =
+            0;
     }
 
     return false;
@@ -1599,12 +2192,14 @@ function countSolutions(
         grid[bestRow][bestCol] =
             number;
 
-        count += countSolutions(
-            grid,
-            limit - count
-        );
+        count +=
+            countSolutions(
+                grid,
+                limit - count
+            );
 
-        grid[bestRow][bestCol] = 0;
+        grid[bestRow][bestCol] =
+            0;
 
         if (
             count >= limit
@@ -1622,12 +2217,16 @@ function generatePuzzle(
     clueCount
 ) {
     const puzzle =
-        cloneGrid(solution);
+        cloneGrid(
+            solution
+        );
 
     const positions =
         shuffle(
             Array.from(
-                { length: 81 },
+                {
+                    length: 81
+                },
                 (_, i) => i
             )
         );
@@ -1644,15 +2243,20 @@ function generatePuzzle(
         }
 
         const [row, col] =
-            indexToRowCol(index);
+            indexToRowCol(
+                index
+            );
 
         const previous =
             puzzle[row][col];
 
-        puzzle[row][col] = 0;
+        puzzle[row][col] =
+            0;
 
         const testGrid =
-            cloneGrid(puzzle);
+            cloneGrid(
+                puzzle
+            );
 
         if (
             countSolutions(
@@ -1700,7 +2304,9 @@ function getCandidates(
                 number
             )
         ) {
-            candidates.push(number);
+            candidates.push(
+                number
+            );
         }
     }
 
@@ -1744,7 +2350,8 @@ function updateAllCandidates() {
    ========================================================= */
 
 function getConflicts() {
-    const conflicts = new Set();
+    const conflicts =
+        new Set();
 
     for (
         let row = 0;
@@ -1766,7 +2373,8 @@ function getConflicts() {
             }
 
             if (
-                seen[value] !== undefined
+                seen[value] !==
+                undefined
             ) {
                 conflicts.add(
                     rowColToIndex(
@@ -1782,7 +2390,8 @@ function getConflicts() {
                     )
                 );
             } else {
-                seen[value] = col;
+                seen[value] =
+                    col;
             }
         }
     }
@@ -1807,7 +2416,8 @@ function getConflicts() {
             }
 
             if (
-                seen[value] !== undefined
+                seen[value] !==
+                undefined
             ) {
                 conflicts.add(
                     rowColToIndex(
@@ -1823,7 +2433,8 @@ function getConflicts() {
                     )
                 );
             } else {
-                seen[value] = row;
+                seen[value] =
+                    row;
             }
         }
     }
@@ -1855,7 +2466,9 @@ function getConflicts() {
                     col++
                 ) {
                     const value =
-                        state.board[row][col];
+                        state.board[
+                            row
+                        ][col];
 
                     if (!value) {
                         continue;
@@ -1871,12 +2484,16 @@ function getConflicts() {
                         seen[value] !==
                         undefined
                     ) {
-                        conflicts.add(index);
+                        conflicts.add(
+                            index
+                        );
+
                         conflicts.add(
                             seen[value]
                         );
                     } else {
-                        seen[value] = index;
+                        seen[value] =
+                            index;
                     }
                 }
             }
@@ -1892,7 +2509,8 @@ function getConflicts() {
    ========================================================= */
 
 function renderBoard() {
-    boardElement.innerHTML = "";
+    boardElement.innerHTML =
+        "";
 
     const conflicts =
         getConflicts();
@@ -1910,24 +2528,32 @@ function renderBoard() {
         index++
     ) {
         const [row, col] =
-            indexToRowCol(index);
+            indexToRowCol(
+                index
+            );
 
         const cell =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
-        cell.className = "cell";
+        cell.className =
+            "cell";
 
         const value =
             state.board[row][col];
 
         const isGiven =
-            state.puzzle[row][col] !== 0;
+            state.puzzle[row][col] !==
+            0;
 
         if (isGiven) {
             cell.classList.add(
                 "given"
             );
-        } else if (value !== 0) {
+        } else if (
+            value !== 0
+        ) {
             cell.classList.add(
                 "user"
             );
@@ -1940,15 +2566,22 @@ function renderBoard() {
             col === selectedCol;
 
         const sameBox =
-            Math.floor(row / 3) ===
+            Math.floor(
+                row / 3
+            ) ===
                 Math.floor(
                     selectedRow / 3
                 ) &&
-            Math.floor(col / 3) ===
+            Math.floor(
+                col / 3
+            ) ===
                 Math.floor(
                     selectedCol / 3
                 );
 
+        /*
+         * Only editable cells receive related styling.
+         */
         if (
             !isGiven &&
             (
@@ -1962,6 +2595,11 @@ function renderBoard() {
             );
         }
 
+        /*
+         * All selected cells receive this class.
+         * CSS handles the difference between given
+         * and editable selected cells.
+         */
         if (
             index === state.selected
         ) {
@@ -1978,7 +2616,9 @@ function renderBoard() {
             );
         }
 
-        if (value !== 0) {
+        if (
+            value !== 0
+        ) {
             const valueElement =
                 document.createElement(
                     "span"
@@ -2003,8 +2643,9 @@ function renderBoard() {
                 "candidates";
 
             const candidates =
-                state.candidates[row][col] ||
-                [];
+                state.candidates[
+                    row
+                ][col] || [];
 
             for (
                 let number = 1;
@@ -2020,7 +2661,9 @@ function renderBoard() {
                     "candidate";
 
                 if (
-                    candidates.includes(number)
+                    candidates.includes(
+                        number
+                    )
                 ) {
                     candidate.textContent =
                         number;
@@ -2106,11 +2749,15 @@ function placeNumber(number) {
         );
 
     if (
-        state.puzzle[row][col] !== 0
+        state.puzzle[row][col] !==
+        0
     ) {
         return;
     }
 
+    /*
+     * Normal number entry.
+     */
     if (
         !state.pencilMode
     ) {
@@ -2135,8 +2782,8 @@ function placeNumber(number) {
     }
 
     /*
-     * Automatic Candidates controls the
-     * candidate set automatically.
+     * Auto candidates controls its own
+     * candidate list.
      */
     if (
         state.autoCandidates
@@ -2145,7 +2792,8 @@ function placeNumber(number) {
     }
 
     const current =
-        state.candidates[row][col] || [];
+        state.candidates[row][col] ||
+        [];
 
     if (
         current.includes(number)
@@ -2156,7 +2804,10 @@ function placeNumber(number) {
             );
     } else {
         state.candidates[row][col] =
-            [...current, number].sort();
+            [
+                ...current,
+                number
+            ].sort();
     }
 
     renderBoard();
@@ -2178,12 +2829,14 @@ function clearSelectedCell() {
         );
 
     if (
-        state.puzzle[row][col] !== 0
+        state.puzzle[row][col] !==
+        0
     ) {
         return;
     }
 
-    state.board[row][col] = 0;
+    state.board[row][col] =
+        0;
 
     if (
         state.autoCandidates
@@ -2235,7 +2888,7 @@ function toggleAutoCandidates() {
 
 
 /* =========================================================
-   Reset current puzzle
+   Reset
    ========================================================= */
 
 function resetGame() {
@@ -2260,6 +2913,7 @@ function resetGame() {
         createEmptyCandidates();
 
     state.selected = 0;
+
     state.pencilMode = false;
     state.autoCandidates = false;
 
@@ -2290,7 +2944,9 @@ function resetGame() {
    Keyboard navigation
    ========================================================= */
 
-function moveSelection(direction) {
+function moveSelection(
+    direction
+) {
     if (
         !state.running ||
         state.completed
@@ -2305,19 +2961,23 @@ function moveSelection(direction) {
 
     switch (direction) {
         case "up":
-            row = (row + 8) % 9;
+            row =
+                (row + 8) % 9;
             break;
 
         case "down":
-            row = (row + 1) % 9;
+            row =
+                (row + 1) % 9;
             break;
 
         case "left":
-            col = (col + 8) % 9;
+            col =
+                (col + 8) % 9;
             break;
 
         case "right":
-            col = (col + 1) % 9;
+            col =
+                (col + 1) % 9;
             break;
     }
 
@@ -2389,7 +3049,9 @@ document.addEventListener(
             event.preventDefault();
 
             placeNumber(
-                Number(event.key)
+                Number(
+                    event.key
+                )
             );
         }
     }
@@ -2421,7 +3083,8 @@ function checkCompletion() {
             col++
         ) {
             if (
-                state.board[row][col] === 0
+                state.board[row][col] ===
+                0
             ) {
                 return;
             }
@@ -2452,8 +3115,7 @@ function completeGame() {
     stopTimer();
 
     /*
-     * Completed games are not offered as
-     * resumable games.
+     * Completed games cannot be continued.
      */
     clearSavedGame();
 
@@ -2467,7 +3129,6 @@ function completeGame() {
     );
 
     renderBoard();
-
     updateContinueButton();
 }
 
@@ -2480,39 +3141,44 @@ function startTimer() {
     stopTimer();
 
     state.timerInterval =
-        setInterval(() => {
-            if (
-                state.running &&
-                !state.completed
-            ) {
-                state.elapsedSeconds++;
-                state.secondsSinceSave++;
-
-                timerElement.textContent =
-                    formatTime(
-                        state.elapsedSeconds
-                    );
-
+        setInterval(
+            () => {
                 if (
-                    state.secondsSinceSave >=
-                    SAVE_INTERVAL_SECONDS
+                    state.running &&
+                    !state.completed
                 ) {
-                    saveGame();
+                    state.elapsedSeconds++;
+                    state.secondsSinceSave++;
+
+                    timerElement.textContent =
+                        formatTime(
+                            state.elapsedSeconds
+                        );
+
+                    if (
+                        state.secondsSinceSave >=
+                        SAVE_INTERVAL_SECONDS
+                    ) {
+                        saveGame();
+                    }
                 }
-            }
-        }, 1000);
+            },
+            1000
+        );
 }
 
 
 function stopTimer() {
     if (
-        state.timerInterval !== null
+        state.timerInterval !==
+        null
     ) {
         clearInterval(
             state.timerInterval
         );
 
-        state.timerInterval = null;
+        state.timerInterval =
+            null;
     }
 }
 
@@ -2521,11 +3187,6 @@ function stopTimer() {
    Start screen / New Game
    ========================================================= */
 
-/*
- * The start screen is shown whenever the user
- * chooses New Game and also on every fresh
- * page load.
- */
 function showStartScreen() {
     stopTimer();
 
@@ -2541,13 +3202,14 @@ function showStartScreen() {
     );
 
     updateContinueButton();
+
+    /*
+     * Refresh the deployment information immediately.
+     */
+    checkDeploymentStatus();
 }
 
 
-/*
- * Start Game always creates a completely
- * new puzzle and replaces the saved game.
- */
 function startGame() {
     const config =
         difficultyConfig[
@@ -2574,6 +3236,7 @@ function startGame() {
         createEmptyCandidates();
 
     state.selected = 0;
+
     state.pencilMode = false;
     state.autoCandidates = false;
 
@@ -2597,14 +3260,12 @@ function startGame() {
     renderBoard();
 
     /*
-     * Saving immediately ensures that even a
-     * newly generated puzzle can be continued.
+     * Immediately save the new game so it can
+     * be continued after closing the page.
      */
     saveGame();
 
     startTimer();
-
-    updateContinueButton();
 }
 
 
@@ -2631,7 +3292,7 @@ function selectDifficulty(
 
 
 /* =========================================================
-   UI Events
+   UI events
    ========================================================= */
 
 difficultyButtons.forEach(
@@ -2701,7 +3362,7 @@ closeCompletionButton.addEventListener(
 
 
 /* =========================================================
-   Save when the page is backgrounded or closed
+   Save on page close/background
    ========================================================= */
 
 window.addEventListener(
@@ -2717,7 +3378,7 @@ document.addEventListener(
     () => {
         if (
             document.visibilityState ===
-                "hidden"
+            "hidden"
         ) {
             saveGame();
         }
@@ -2729,11 +3390,6 @@ document.addEventListener(
    Initial startup
    ========================================================= */
 
-/*
- * Initialize an empty board for the game
- * interface. Do NOT restore the saved game
- * into the active state automatically.
- */
 state.solution =
     createEmptyGrid();
 
@@ -2746,7 +3402,9 @@ state.board =
 state.candidates =
     createEmptyCandidates();
 
-selectDifficulty("easy");
+selectDifficulty(
+    "easy"
+);
 
 timerElement.textContent =
     "00:00";
@@ -2754,21 +3412,33 @@ timerElement.textContent =
 difficultyDisplay.textContent =
     "EASY";
 
-renderBoard();
-
-/*
- * Every page load starts on the start screen.
- * The Continue button is shown only if a
- * valid saved game is available.
- */
 state.running = false;
 state.completed = false;
 
+renderBoard();
+
+/*
+ * Always start on the start screen.
+ */
 startScreen.classList.remove(
     "hidden"
 );
 
+/*
+ * Show Continue only when a saved game exists.
+ */
 updateContinueButton();
+
+/*
+ * Check GitHub Pages deployment immediately,
+ * then every 30 seconds.
+ */
+checkDeploymentStatus();
+
+setInterval(
+    checkDeploymentStatus,
+    DEPLOYMENT_CHECK_INTERVAL_MS
+);
 </script>
 
 </body>
