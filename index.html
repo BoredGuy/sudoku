@@ -1259,15 +1259,7 @@ function setDeploymentIndicator(
 }
 
 
-/*
- * Fetch JSON from a public GitHub endpoint.
- *
- * cacheBust is added to prevent an intermediary cache
- * from returning an older API response.
- */
-async function fetchGitHubJson(
-    endpoint
-) {
+async function fetchGitHubJson(endpoint) {
     const separator =
         endpoint.includes("?")
             ? "&"
@@ -1287,7 +1279,7 @@ async function fetchGitHubJson(
 
     if (!response.ok) {
         throw new Error(
-            `GitHub API returned HTTP ${response.status}.`
+            `HTTP ${response.status}`
         );
     }
 
@@ -1296,26 +1288,78 @@ async function fetchGitHubJson(
 
 
 /*
- * Fetch the latest Pages build.
+ * Get the latest GitHub Pages build.
+ *
+ * The primary endpoint is /pages/builds/latest.
+ * If that fails, fall back to the build list.
  */
 async function getLatestPagesBuild() {
-    return fetchGitHubJson(
-        `${GITHUB_REPOSITORY_API}` +
-        `/pages/builds/latest`
-    );
+    try {
+        return await fetchGitHubJson(
+            `${GITHUB_REPOSITORY_API}` +
+            `/pages/builds/latest`
+        );
+    } catch (latestError) {
+        const builds =
+            await fetchGitHubJson(
+                `${GITHUB_REPOSITORY_API}` +
+                `/pages/builds?per_page=1`
+            );
+
+        if (
+            Array.isArray(builds) &&
+            builds.length > 0
+        ) {
+            return builds[0];
+        }
+
+        throw latestError;
+    }
 }
 
 
 /*
- * Fetch the latest commit on main.
+ * Get the latest main-branch commit.
+ *
+ * The commits endpoint is preferred because it
+ * also gives us the commit timestamp.
  */
 async function getLatestMainCommit() {
-    return fetchGitHubJson(
-        `${GITHUB_REPOSITORY_API}` +
-        `/commits/${encodeURIComponent(
-            GITHUB_BRANCH
-        )}`
-    );
+    try {
+        return await fetchGitHubJson(
+            `${GITHUB_REPOSITORY_API}` +
+            `/commits/${encodeURIComponent(
+                GITHUB_BRANCH
+            )}`
+        );
+    } catch (commitError) {
+
+        /*
+         * Fallback: resolve main directly through
+         * GitHub's Git reference endpoint.
+         */
+        const ref =
+            await fetchGitHubJson(
+                `${GITHUB_REPOSITORY_API}` +
+                `/git/ref/heads/` +
+                `${encodeURIComponent(
+                    GITHUB_BRANCH
+                )}`
+            );
+
+        const sha =
+            ref &&
+            ref.object &&
+            ref.object.sha;
+
+        if (!sha) {
+            throw commitError;
+        }
+
+        return {
+            sha: sha
+        };
+    }
 }
 
 
@@ -1323,162 +1367,138 @@ async function getLatestMainCommit() {
  * Check deployment data and compare it with main.
  */
 async function checkDeploymentStatus() {
+
     setDeploymentIndicator(
         "Checking deployment…"
     );
 
-    try {
-        const [
-            pagesBuild,
-            mainCommit
-        ] = await Promise.all([
-            getLatestPagesBuild(),
-            getLatestMainCommit()
-        ]);
+    const [
+        pagesResult,
+        mainResult
+    ] = await Promise.allSettled([
+        getLatestPagesBuild(),
+        getLatestMainCommit()
+    ]);
 
-        const deployedSha =
+
+    /*
+     * -----------------------------------------------------
+     * MAIN COMMIT
+     * -----------------------------------------------------
+     */
+
+    const mainCommit =
+        mainResult.status === "fulfilled"
+            ? mainResult.value
+            : null;
+
+    const latestSha =
+        mainCommit &&
+        mainCommit.sha;
+
+
+    /*
+     * -----------------------------------------------------
+     * PAGES DEPLOYMENT
+     * -----------------------------------------------------
+     */
+
+    const pagesBuild =
+        pagesResult.status === "fulfilled"
+            ? pagesResult.value
+            : null;
+
+    const deployedSha =
+        pagesBuild &&
+        pagesBuild.commit;
+
+    const deploymentStatus =
+        (
             pagesBuild &&
-            pagesBuild.commit;
+            pagesBuild.status
+        ) || "";
 
-        const latestSha =
-            mainCommit &&
-            mainCommit.sha;
 
-        const deploymentStatus =
-            (
-                pagesBuild &&
-                pagesBuild.status
-            ) || "";
+    /*
+     * -----------------------------------------------------
+     * If both requests failed, expose the actual
+     * reason instead of hiding it.
+     * -----------------------------------------------------
+     */
 
+    if (
+        !mainCommit &&
+        !pagesBuild
+    ) {
+        const mainError =
+            mainResult.reason &&
+            mainResult.reason.message
+                ? mainResult.reason.message
+                : "unknown error";
+
+        const pagesError =
+            pagesResult.reason &&
+            pagesResult.reason.message
+                ? pagesResult.reason.message
+                : "unknown error";
+
+        setDeploymentIndicator(
+            "GitHub API unavailable · " +
+            pagesError +
+            " · " +
+            mainError,
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * -----------------------------------------------------
+     * MAIN ONLY
+     * -----------------------------------------------------
+     *
+     * We know the repository revision, but GitHub Pages
+     * deployment data could not currently be retrieved.
+     */
+
+    if (
+        mainCommit &&
+        !pagesBuild
+    ) {
+        setDeploymentIndicator(
+            "MAIN " +
+            shortSha(latestSha) +
+            " · DEPLOYMENT CHECK FAILED",
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * -----------------------------------------------------
+     * PAGES ONLY
+     * -----------------------------------------------------
+     */
+
+    if (
+        pagesBuild &&
+        !mainCommit
+    ) {
         const deployedShortSha =
-            shortSha(
-                deployedSha
-            );
-
-        const latestShortSha =
-            shortSha(
-                latestSha
-            );
+            shortSha(deployedSha);
 
         const deployedTime =
             formatRelativeTime(
                 (
-                    pagesBuild &&
-                    (
-                        pagesBuild.updated_at ||
-                        pagesBuild.created_at
-                    )
+                    pagesBuild.updated_at ||
+                    pagesBuild.created_at
                 ) || ""
             );
 
-        /*
-         * No SHA means the API response did not contain
-         * enough information to compare the two revisions.
-         */
-        if (
-            !deployedSha ||
-            !latestSha
-        ) {
-            setDeploymentIndicator(
-                "Deployment data unavailable",
-                "error"
-            );
-
-            return;
-        }
-
-        /*
-         * If the latest Pages build is not complete,
-         * report its current state.
-         */
-        if (
-            deploymentStatus &&
-            deploymentStatus !== "built"
-        ) {
-            setDeploymentIndicator(
-                "PAGES " +
-                deploymentStatus.toUpperCase() +
-                " · MAIN " +
-                latestShortSha
-            );
-
-            return;
-        }
-
-        /*
-         * Same SHA means the latest main commit is the
-         * commit associated with the latest Pages build.
-         */
-        if (
-            deployedSha === latestSha
-        ) {
-            setDeploymentIndicator(
-                "LIVE " +
-                deployedShortSha +
-                (
-                    deployedTime
-                        ? " · " +
-                          deployedTime
-                        : ""
-                )
-            );
-
-            return;
-        }
-
-        /*
-         * Different SHAs do not by themselves establish
-         * which commit is newer. Compare their timestamps.
-         */
-        const mainCommitDate =
-            mainCommit.commit &&
-            mainCommit.commit.author &&
-            mainCommit.commit.author.date;
-
-        const deployedDate =
-            pagesBuild.updated_at ||
-            pagesBuild.created_at;
-
-        const mainTimestamp =
-            Date.parse(
-                mainCommitDate || ""
-            );
-
-        const deployedTimestamp =
-            Date.parse(
-                deployedDate || ""
-            );
-
-        /*
-         * If main's latest commit is newer than the
-         * latest Pages build, show UPDATE PENDING.
-         */
-        if (
-            !Number.isNaN(mainTimestamp) &&
-            !Number.isNaN(deployedTimestamp) &&
-            mainTimestamp >
-                deployedTimestamp
-        ) {
-            setDeploymentIndicator(
-                "LIVE " +
-                deployedShortSha +
-                (
-                    deployedTime
-                        ? " · " +
-                          deployedTime
-                        : ""
-                ) +
-                " · UPDATE PENDING " +
-                latestShortSha,
-                "update-pending"
-            );
-
-            return;
-        }
-
-        /*
-         * Different SHAs with no clear temporal ordering.
-         */
         setDeploymentIndicator(
             "LIVE " +
             deployedShortSha +
@@ -1487,28 +1507,148 @@ async function checkDeploymentStatus() {
                     ? " · " +
                       deployedTime
                     : ""
-            ) +
+            ),
+            "error"
+        );
+
+        return;
+    }
+
+
+    /*
+     * -----------------------------------------------------
+     * We now have both sides.
+     * -----------------------------------------------------
+     */
+
+    const deployedShortSha =
+        shortSha(deployedSha);
+
+    const latestShortSha =
+        shortSha(latestSha);
+
+    const deployedTime =
+        formatRelativeTime(
+            (
+                pagesBuild.updated_at ||
+                pagesBuild.created_at
+            ) || ""
+        );
+
+
+    /*
+     * Pages deployment is still being processed.
+     */
+    if (
+        deploymentStatus &&
+        deploymentStatus !== "built"
+    ) {
+        setDeploymentIndicator(
+            "PAGES " +
+            deploymentStatus.toUpperCase() +
             " · MAIN " +
             latestShortSha
         );
 
-    } catch (error) {
-        /*
-         * Keep the Sudoku game fully functional when
-         * GitHub's API cannot be reached.
-         */
-        setDeploymentIndicator(
-            "Deployment status unavailable",
-            "error"
-        );
-
-        console.error(
-            "Sudoku deployment check failed:",
-            error
-        );
+        return;
     }
-}
 
+
+    /*
+     * -----------------------------------------------------
+     * Same SHA
+     * -----------------------------------------------------
+     *
+     * The latest main commit is the same commit associated
+     * with the latest Pages build.
+     */
+
+    if (
+        deployedSha &&
+        latestSha &&
+        deployedSha === latestSha
+    ) {
+        setDeploymentIndicator(
+            "LIVE " +
+            deployedShortSha +
+            (
+                deployedTime
+                    ? " · " +
+                      deployedTime
+                    : ""
+            )
+        );
+
+        return;
+    }
+
+
+    /*
+     * -----------------------------------------------------
+     * Different SHAs
+     * -----------------------------------------------------
+     */
+
+    const mainCommitDate =
+        mainCommit.commit &&
+        mainCommit.commit.author &&
+        mainCommit.commit.author.date;
+
+    const deployedDate =
+        pagesBuild.updated_at ||
+        pagesBuild.created_at;
+
+    const mainTimestamp =
+        Date.parse(
+            mainCommitDate || ""
+        );
+
+    const deployedTimestamp =
+        Date.parse(
+            deployedDate || ""
+        );
+
+
+    /*
+     * The repository commit is newer than the deployed
+     * Pages build.
+     */
+
+    if (
+        !Number.isNaN(mainTimestamp) &&
+        !Number.isNaN(deployedTimestamp) &&
+        mainTimestamp >
+            deployedTimestamp
+    ) {
+        setDeploymentIndicator(
+            "UPDATE PENDING " +
+            latestShortSha +
+            " · LIVE " +
+            deployedShortSha
+        );
+
+        return;
+    }
+
+
+    /*
+     * Different SHAs, but we cannot establish that main
+     * is newer from the available timestamps.
+     */
+
+    setDeploymentIndicator(
+        "LIVE " +
+        deployedShortSha +
+        (
+            deployedTime
+                ? " · " +
+                  deployedTime
+                : ""
+        ) +
+        " · MAIN " +
+        latestShortSha
+    );
+}
 
 /* =========================================================
    Utilities
