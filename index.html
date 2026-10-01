@@ -1259,6 +1259,16 @@ function setDeploymentIndicator(
 }
 
 
+/* =========================================================
+   GitHub deployment information
+   ========================================================= */
+
+/*
+ * Fetch JSON from a public GitHub endpoint.
+ *
+ * A timestamp query parameter prevents a cached API
+ * response from being reused.
+ */
 async function fetchGitHubJson(endpoint) {
     const separator =
         endpoint.includes("?")
@@ -1274,7 +1284,10 @@ async function fetchGitHubJson(endpoint) {
     const response =
         await fetch(
             url,
-            GITHUB_REQUEST_OPTIONS
+            {
+                method: "GET",
+                cache: "no-store"
+            }
         );
 
     if (!response.ok) {
@@ -1288,83 +1301,34 @@ async function fetchGitHubJson(endpoint) {
 
 
 /*
- * Get the latest GitHub Pages build.
- *
- * The primary endpoint is /pages/builds/latest.
- * If that fails, fall back to the build list.
+ * Fetch the latest GitHub Pages build.
  */
 async function getLatestPagesBuild() {
-    try {
-        return await fetchGitHubJson(
-            `${GITHUB_REPOSITORY_API}` +
-            `/pages/builds/latest`
-        );
-    } catch (latestError) {
-        const builds =
-            await fetchGitHubJson(
-                `${GITHUB_REPOSITORY_API}` +
-                `/pages/builds?per_page=1`
-            );
-
-        if (
-            Array.isArray(builds) &&
-            builds.length > 0
-        ) {
-            return builds[0];
-        }
-
-        throw latestError;
-    }
+    return fetchGitHubJson(
+        `${GITHUB_REPOSITORY_API}` +
+        `/pages/builds/latest`
+    );
 }
 
 
 /*
- * Get the latest main-branch commit.
- *
- * The commits endpoint is preferred because it
- * also gives us the commit timestamp.
+ * Fetch the latest commit on the main branch.
  */
 async function getLatestMainCommit() {
-    try {
-        return await fetchGitHubJson(
-            `${GITHUB_REPOSITORY_API}` +
-            `/commits/${encodeURIComponent(
-                GITHUB_BRANCH
-            )}`
-        );
-    } catch (commitError) {
-
-        /*
-         * Fallback: resolve main directly through
-         * GitHub's Git reference endpoint.
-         */
-        const ref =
-            await fetchGitHubJson(
-                `${GITHUB_REPOSITORY_API}` +
-                `/git/ref/heads/` +
-                `${encodeURIComponent(
-                    GITHUB_BRANCH
-                )}`
-            );
-
-        const sha =
-            ref &&
-            ref.object &&
-            ref.object.sha;
-
-        if (!sha) {
-            throw commitError;
-        }
-
-        return {
-            sha: sha
-        };
-    }
+    return fetchGitHubJson(
+        `${GITHUB_REPOSITORY_API}` +
+        `/commits/${encodeURIComponent(
+            GITHUB_BRANCH
+        )}`
+    );
 }
 
 
 /*
- * Check deployment data and compare it with main.
+ * Check deployment information once.
+ *
+ * This function is intentionally NOT polled.
+ * It is called only during page initialization.
  */
 async function checkDeploymentStatus() {
 
@@ -1372,133 +1336,166 @@ async function checkDeploymentStatus() {
         "Checking deployment…"
     );
 
-    const [
-        pagesResult,
-        mainResult
-    ] = await Promise.allSettled([
-        getLatestPagesBuild(),
-        getLatestMainCommit()
-    ]);
+    try {
+        const [
+            pagesBuild,
+            mainCommit
+        ] = await Promise.all([
+            getLatestPagesBuild(),
+            getLatestMainCommit()
+        ]);
 
 
-    /*
-     * -----------------------------------------------------
-     * MAIN COMMIT
-     * -----------------------------------------------------
-     */
-
-    const mainCommit =
-        mainResult.status === "fulfilled"
-            ? mainResult.value
-            : null;
-
-    const latestSha =
-        mainCommit &&
-        mainCommit.sha;
-
-
-    /*
-     * -----------------------------------------------------
-     * PAGES DEPLOYMENT
-     * -----------------------------------------------------
-     */
-
-    const pagesBuild =
-        pagesResult.status === "fulfilled"
-            ? pagesResult.value
-            : null;
-
-    const deployedSha =
-        pagesBuild &&
-        pagesBuild.commit;
-
-    const deploymentStatus =
-        (
+        const deployedSha =
             pagesBuild &&
-            pagesBuild.status
-        ) || "";
+            pagesBuild.commit;
+
+        const latestSha =
+            mainCommit &&
+            mainCommit.sha;
+
+        const deploymentStatus =
+            (
+                pagesBuild &&
+                pagesBuild.status
+            ) || "";
 
 
-    /*
-     * -----------------------------------------------------
-     * If both requests failed, expose the actual
-     * reason instead of hiding it.
-     * -----------------------------------------------------
-     */
-
-    if (
-        !mainCommit &&
-        !pagesBuild
-    ) {
-        const mainError =
-            mainResult.reason &&
-            mainResult.reason.message
-                ? mainResult.reason.message
-                : "unknown error";
-
-        const pagesError =
-            pagesResult.reason &&
-            pagesResult.reason.message
-                ? pagesResult.reason.message
-                : "unknown error";
-
-        setDeploymentIndicator(
-            "GitHub API unavailable · " +
-            pagesError +
-            " · " +
-            mainError,
-            "error"
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * MAIN ONLY
-     * -----------------------------------------------------
-     *
-     * We know the repository revision, but GitHub Pages
-     * deployment data could not currently be retrieved.
-     */
-
-    if (
-        mainCommit &&
-        !pagesBuild
-    ) {
-        setDeploymentIndicator(
-            "MAIN " +
-            shortSha(latestSha) +
-            " · DEPLOYMENT CHECK FAILED",
-            "error"
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * PAGES ONLY
-     * -----------------------------------------------------
-     */
-
-    if (
-        pagesBuild &&
-        !mainCommit
-    ) {
         const deployedShortSha =
-            shortSha(deployedSha);
+            shortSha(
+                deployedSha
+            );
+
+        const latestShortSha =
+            shortSha(
+                latestSha
+            );
+
 
         const deployedTime =
             formatRelativeTime(
                 (
-                    pagesBuild.updated_at ||
-                    pagesBuild.created_at
+                    pagesBuild &&
+                    (
+                        pagesBuild.updated_at ||
+                        pagesBuild.created_at
+                    )
                 ) || ""
             );
 
+
+        /*
+         * Make sure both revisions are available.
+         */
+        if (
+            !deployedSha ||
+            !latestSha
+        ) {
+            setDeploymentIndicator(
+                "Deployment data unavailable",
+                "error"
+            );
+
+            return;
+        }
+
+
+        /*
+         * Report an in-progress Pages build.
+         */
+        if (
+            deploymentStatus &&
+            deploymentStatus !== "built"
+        ) {
+            setDeploymentIndicator(
+                "PAGES " +
+                deploymentStatus.toUpperCase() +
+                " · MAIN " +
+                latestShortSha
+            );
+
+            return;
+        }
+
+
+        /*
+         * The Pages build and main branch point to
+         * exactly the same commit.
+         */
+        if (
+            deployedSha === latestSha
+        ) {
+            setDeploymentIndicator(
+                "LIVE " +
+                deployedShortSha +
+                (
+                    deployedTime
+                        ? " · " +
+                          deployedTime
+                        : ""
+                )
+            );
+
+            return;
+        }
+
+
+        /*
+         * Different SHAs.
+         *
+         * Compare timestamps to determine whether
+         * the repository has a newer commit waiting
+         * to be deployed.
+         */
+        const mainCommitDate =
+            mainCommit.commit &&
+            mainCommit.commit.author &&
+            mainCommit.commit.author.date;
+
+        const deployedDate =
+            pagesBuild.updated_at ||
+            pagesBuild.created_at;
+
+
+        const mainTimestamp =
+            Date.parse(
+                mainCommitDate || ""
+            );
+
+        const deployedTimestamp =
+            Date.parse(
+                deployedDate || ""
+            );
+
+
+        if (
+            !Number.isNaN(mainTimestamp) &&
+            !Number.isNaN(deployedTimestamp) &&
+            mainTimestamp >
+                deployedTimestamp
+        ) {
+            setDeploymentIndicator(
+                "LIVE " +
+                deployedShortSha +
+                (
+                    deployedTime
+                        ? " · " +
+                          deployedTime
+                        : ""
+                ) +
+                " · UPDATE PENDING " +
+                latestShortSha,
+                "update-pending"
+            );
+
+            return;
+        }
+
+
+        /*
+         * Different commits, but no reliable timestamp
+         * comparison is available.
+         */
         setDeploymentIndicator(
             "LIVE " +
             deployedShortSha +
@@ -1507,7 +1504,39 @@ async function checkDeploymentStatus() {
                     ? " · " +
                       deployedTime
                     : ""
-            ),
+            ) +
+            " · MAIN " +
+            latestShortSha
+        );
+
+    } catch (error) {
+
+        /*
+         * Show the actual error rather than hiding it.
+         */
+        const message =
+            error &&
+            error.message
+                ? error.message
+                : "Unknown error";
+
+        setDeploymentIndicator(
+            "GitHub API unavailable · " +
+            message,
+            "error"
+        );
+
+        console.error(
+            "Sudoku deployment check failed:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   Utilities
+   ========================================================= */
             "error"
         );
 
