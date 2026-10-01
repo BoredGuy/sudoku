@@ -15,16 +15,12 @@
         --rule: #b7b7b3;
         --heavy-rule: #111111;
 
-        /* Editable-cell selection */
         --selected: #dce8f4;
-
         --related: #eeeeeb;
 
-        /* Pre-filled cells */
         --given-background: #d2d2cf;
         --given-text: #111111;
 
-        /* Selected pre-filled cell */
         --given-selected: #7899b8;
         --given-selected-text: #ffffff;
 
@@ -173,28 +169,17 @@
         background: var(--related);
     }
 
-    /*
-     * Editable selected cell.
-     */
     .cell.selected {
         background: var(--selected);
     }
 
-    /*
-     * Normal pre-filled cells.
-     */
+    /* Pre-filled cells always remain light grey. */
     .cell.given,
     .cell.given.related {
         background: var(--given-background);
     }
 
-    /*
-     * Selected pre-filled cell.
-     *
-     * This rule intentionally comes after .cell.selected
-     * and .cell.given so the selected given cell receives
-     * its own darker blue background.
-     */
+    /* Selected pre-filled cell is darker blue. */
     .cell.given.selected {
         background: var(--given-selected);
     }
@@ -230,10 +215,6 @@
         font-weight: 700;
     }
 
-    /*
-     * White text keeps the selected pre-filled cell
-     * legible against its darker blue background.
-     */
     .cell.given.selected .value {
         color: var(--given-selected-text);
     }
@@ -247,10 +228,6 @@
         color: var(--conflict);
     }
 
-    /*
-     * A conflict should remain visually apparent even
-     * when the cell is selected.
-     */
     .cell.given.selected.conflict .value {
         color: var(--conflict);
     }
@@ -333,6 +310,7 @@
     .control-button:focus-visible,
     .difficulty-button:focus-visible,
     #startButton:focus-visible,
+    #continueButton:focus-visible,
     .completion-actions button:focus-visible {
         outline: 2px solid var(--user);
         outline-offset: -2px;
@@ -431,13 +409,18 @@
         color: white;
     }
 
-    #startButton {
+    .start-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    #startButton,
+    #continueButton {
         width: 100%;
         min-height: 54px;
 
         border: 0;
-        background: var(--ink);
-        color: white;
         cursor: pointer;
 
         font-family:
@@ -451,8 +434,24 @@
         letter-spacing: .1em;
     }
 
+    #startButton {
+        background: var(--ink);
+        color: white;
+    }
+
     #startButton:hover {
         background: #333;
+    }
+
+    #continueButton {
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid var(--ink);
+    }
+
+    #continueButton:hover {
+        background: var(--ink);
+        color: white;
     }
 
     /* -----------------------------------------------------
@@ -642,6 +641,10 @@
 
 <body>
 
+<!-- =======================================================
+     START SCREEN
+     ======================================================== -->
+
 <div id="startScreen" class="start-screen">
     <div class="start-content">
 
@@ -667,12 +670,27 @@
             </button>
         </div>
 
-        <button id="startButton">
-            Start Game
-        </button>
+        <div class="start-actions">
+
+            <button id="startButton">
+                Start Game
+            </button>
+
+            <button
+                id="continueButton"
+                class="hidden">
+                Continue
+            </button>
+
+        </div>
 
     </div>
 </div>
+
+
+<!-- =======================================================
+     GAME
+     ======================================================== -->
 
 <main class="app">
 
@@ -684,6 +702,7 @@
 
     <section class="game-heading">
         <div class="heading-row">
+
             <div class="game-meta">
                 <span id="difficultyDisplay">
                     EASY
@@ -693,6 +712,7 @@
                     00:00
                 </span>
             </div>
+
         </div>
     </section>
 
@@ -752,6 +772,11 @@
 
 </main>
 
+
+<!-- =======================================================
+     COMPLETION
+     ======================================================== -->
+
 <div
     id="completionOverlay"
     class="completion-overlay hidden">
@@ -787,26 +812,54 @@
 
 </div>
 
+
 <script>
 "use strict";
 
+
+/* =========================================================
+   Constants
+   ========================================================= */
+
 const SIZE = 9;
 const BOX = 3;
+
+const STORAGE_KEY =
+    "sudoku-active-game-v1";
+
+const SAVE_INTERVAL_SECONDS = 5;
+
+
+/* =========================================================
+   State
+   ========================================================= */
 
 const state = {
     solution: [],
     puzzle: [],
     board: [],
     candidates: [],
+
     selected: 0,
+
     difficulty: "easy",
+
     pencilMode: false,
     autoCandidates: false,
+
     running: false,
     completed: false,
+
     elapsedSeconds: 0,
-    timerInterval: null
+    timerInterval: null,
+
+    secondsSinceSave: 0
 };
+
+
+/* =========================================================
+   Difficulty
+   ========================================================= */
 
 const difficultyConfig = {
     easy: {
@@ -822,49 +875,86 @@ const difficultyConfig = {
     }
 };
 
+
+/* =========================================================
+   DOM
+   ========================================================= */
+
 const boardElement =
-    document.getElementById("board");
+    document.getElementById(
+        "board"
+    );
 
 const timerElement =
-    document.getElementById("timer");
+    document.getElementById(
+        "timer"
+    );
 
 const difficultyDisplay =
-    document.getElementById("difficultyDisplay");
+    document.getElementById(
+        "difficultyDisplay"
+    );
 
 const startScreen =
-    document.getElementById("startScreen");
+    document.getElementById(
+        "startScreen"
+    );
 
 const startButton =
-    document.getElementById("startButton");
+    document.getElementById(
+        "startButton"
+    );
+
+const continueButton =
+    document.getElementById(
+        "continueButton"
+    );
 
 const pencilButton =
-    document.getElementById("pencilButton");
+    document.getElementById(
+        "pencilButton"
+    );
 
 const autoCandidateButton =
-    document.getElementById("autoCandidateButton");
+    document.getElementById(
+        "autoCandidateButton"
+    );
 
 const resetButton =
-    document.getElementById("resetButton");
+    document.getElementById(
+        "resetButton"
+    );
 
 const newGameControl =
-    document.getElementById("newGameControl");
+    document.getElementById(
+        "newGameControl"
+    );
 
 const completionOverlay =
-    document.getElementById("completionOverlay");
+    document.getElementById(
+        "completionOverlay"
+    );
 
 const completionTime =
-    document.getElementById("completionTime");
+    document.getElementById(
+        "completionTime"
+    );
 
 const newGameButton =
-    document.getElementById("newGameButton");
+    document.getElementById(
+        "newGameButton"
+    );
 
 const closeCompletionButton =
-    document.getElementById("closeCompletionButton");
+    document.getElementById(
+        "closeCompletionButton"
+    );
 
 const difficultyButtons =
     document.querySelectorAll(
         ".difficulty-button"
     );
+
 
 /* =========================================================
    Utilities
@@ -895,6 +985,7 @@ function shuffle(array) {
     return result;
 }
 
+
 function createEmptyGrid() {
     return Array.from(
         { length: SIZE },
@@ -902,11 +993,25 @@ function createEmptyGrid() {
     );
 }
 
+
 function cloneGrid(grid) {
     return grid.map(
         row => row.slice()
     );
 }
+
+
+function createEmptyCandidates() {
+    return Array.from(
+        { length: SIZE },
+        () =>
+            Array.from(
+                { length: SIZE },
+                () => []
+            )
+    );
+}
+
 
 function formatTime(seconds) {
     const minutes =
@@ -922,6 +1027,7 @@ function formatTime(seconds) {
     );
 }
 
+
 function indexToRowCol(index) {
     return [
         Math.floor(index / SIZE),
@@ -929,9 +1035,316 @@ function indexToRowCol(index) {
     ];
 }
 
+
 function rowColToIndex(row, col) {
     return row * SIZE + col;
 }
+
+
+/* =========================================================
+   Persistence
+   ========================================================= */
+
+function saveGame() {
+    if (
+        !state.running ||
+        state.completed ||
+        state.puzzle.length !== SIZE
+    ) {
+        return;
+    }
+
+    const savedGame = {
+        version: 1,
+
+        solution: cloneGrid(
+            state.solution
+        ),
+
+        puzzle: cloneGrid(
+            state.puzzle
+        ),
+
+        board: cloneGrid(
+            state.board
+        ),
+
+        candidates:
+            state.candidates.map(
+                row =>
+                    row.map(
+                        cell =>
+                            Array.isArray(cell)
+                                ? cell.slice()
+                                : []
+                    )
+            ),
+
+        selected: state.selected,
+
+        difficulty: state.difficulty,
+
+        pencilMode:
+            state.pencilMode,
+
+        autoCandidates:
+            state.autoCandidates,
+
+        elapsedSeconds:
+            state.elapsedSeconds
+    };
+
+    try {
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(savedGame)
+        );
+    } catch (error) {
+        /*
+         * Storage may be unavailable.
+         * The game continues to work without it.
+         */
+    }
+
+    state.secondsSinceSave = 0;
+}
+
+
+function clearSavedGame() {
+    try {
+        localStorage.removeItem(
+            STORAGE_KEY
+        );
+    } catch (error) {
+        /*
+         * Ignore storage errors.
+         */
+    }
+}
+
+
+function isValidGrid(grid) {
+    if (
+        !Array.isArray(grid) ||
+        grid.length !== SIZE
+    ) {
+        return false;
+    }
+
+    return grid.every(row =>
+        Array.isArray(row) &&
+        row.length === SIZE &&
+        row.every(
+            value =>
+                Number.isInteger(value) &&
+                value >= 0 &&
+                value <= 9
+        )
+    );
+}
+
+
+function isValidCandidates(candidates) {
+    if (
+        !Array.isArray(candidates) ||
+        candidates.length !== SIZE
+    ) {
+        return false;
+    }
+
+    return candidates.every(row =>
+        Array.isArray(row) &&
+        row.length === SIZE &&
+        row.every(cell =>
+            Array.isArray(cell) &&
+            cell.every(
+                value =>
+                    Number.isInteger(value) &&
+                    value >= 1 &&
+                    value <= 9
+            )
+        )
+    );
+}
+
+
+/*
+ * Read and validate the saved game without
+ * automatically starting it.
+ *
+ * This is important because every page load
+ * must show the start screen first.
+ */
+function readSavedGame() {
+    let savedGame = null;
+
+    try {
+        const raw =
+            localStorage.getItem(
+                STORAGE_KEY
+            );
+
+        if (!raw) {
+            return null;
+        }
+
+        savedGame =
+            JSON.parse(raw);
+    } catch (error) {
+        clearSavedGame();
+        return null;
+    }
+
+    if (
+        !savedGame ||
+        savedGame.version !== 1 ||
+        !isValidGrid(
+            savedGame.solution
+        ) ||
+        !isValidGrid(
+            savedGame.puzzle
+        ) ||
+        !isValidGrid(
+            savedGame.board
+        ) ||
+        !isValidCandidates(
+            savedGame.candidates
+        ) ||
+        ![
+            "easy",
+            "medium",
+            "hard"
+        ].includes(
+            savedGame.difficulty
+        ) ||
+        !Number.isInteger(
+            savedGame.selected
+        ) ||
+        savedGame.selected < 0 ||
+        savedGame.selected > 80 ||
+        !Number.isInteger(
+            savedGame.elapsedSeconds
+        ) ||
+        savedGame.elapsedSeconds < 0 ||
+        typeof savedGame.pencilMode !==
+            "boolean" ||
+        typeof savedGame.autoCandidates !==
+            "boolean"
+    ) {
+        clearSavedGame();
+        return null;
+    }
+
+    return savedGame;
+}
+
+
+/*
+ * Show or hide the Continue button based on
+ * whether a valid saved game exists.
+ */
+function updateContinueButton() {
+    const savedGame =
+        readSavedGame();
+
+    continueButton.classList.toggle(
+        "hidden",
+        savedGame === null
+    );
+}
+
+
+/*
+ * Restore the saved game into the live state.
+ * This function does NOT generate a new puzzle.
+ */
+function continueSavedGame() {
+    const savedGame =
+        readSavedGame();
+
+    if (!savedGame) {
+        updateContinueButton();
+        return;
+    }
+
+    stopTimer();
+
+    state.solution =
+        cloneGrid(
+            savedGame.solution
+        );
+
+    state.puzzle =
+        cloneGrid(
+            savedGame.puzzle
+        );
+
+    state.board =
+        cloneGrid(
+            savedGame.board
+        );
+
+    state.candidates =
+        savedGame.candidates.map(
+            row =>
+                row.map(
+                    cell =>
+                        cell.slice()
+                )
+        );
+
+    state.selected =
+        savedGame.selected;
+
+    state.difficulty =
+        savedGame.difficulty;
+
+    state.pencilMode =
+        savedGame.pencilMode;
+
+    state.autoCandidates =
+        savedGame.autoCandidates;
+
+    state.elapsedSeconds =
+        savedGame.elapsedSeconds;
+
+    state.secondsSinceSave = 0;
+
+    state.running = true;
+    state.completed = false;
+
+    /*
+     * Automatic candidates are derived from the
+     * current board and therefore recalculated
+     * when the game is restored.
+     */
+    if (
+        state.autoCandidates
+    ) {
+        updateAllCandidates();
+    }
+
+    selectDifficulty(
+        state.difficulty
+    );
+
+    timerElement.textContent =
+        formatTime(
+            state.elapsedSeconds
+        );
+
+    completionOverlay.classList.add(
+        "hidden"
+    );
+
+    startScreen.classList.add(
+        "hidden"
+    );
+
+    renderBoard();
+    startTimer();
+}
+
 
 /* =========================================================
    Sudoku generation
@@ -993,6 +1406,7 @@ function isValidPlacement(
 
     return true;
 }
+
 
 function solveGrid(grid) {
     let bestRow = -1;
@@ -1094,6 +1508,7 @@ function solveGrid(grid) {
     return false;
 }
 
+
 function generateSolution() {
     const grid =
         createEmptyGrid();
@@ -1102,6 +1517,7 @@ function generateSolution() {
 
     return grid;
 }
+
 
 function countSolutions(
     grid,
@@ -1142,7 +1558,9 @@ function countSolutions(
                         number
                     )
                 ) {
-                    candidates.push(number);
+                    candidates.push(
+                        number
+                    );
                 }
             }
 
@@ -1198,6 +1616,7 @@ function countSolutions(
     return count;
 }
 
+
 function generatePuzzle(
     solution,
     clueCount
@@ -1251,11 +1670,15 @@ function generatePuzzle(
     return puzzle;
 }
 
+
 /* =========================================================
    Candidates
    ========================================================= */
 
-function getCandidates(row, col) {
+function getCandidates(
+    row,
+    col
+) {
     if (
         state.board[row][col] !== 0
     ) {
@@ -1283,6 +1706,7 @@ function getCandidates(row, col) {
 
     return candidates;
 }
+
 
 function updateAllCandidates() {
     for (
@@ -1313,6 +1737,7 @@ function updateAllCandidates() {
         }
     }
 }
+
 
 /* =========================================================
    Conflict detection
@@ -1461,6 +1886,7 @@ function getConflicts() {
     return conflicts;
 }
 
+
 /* =========================================================
    Rendering
    ========================================================= */
@@ -1498,9 +1924,13 @@ function renderBoard() {
             state.puzzle[row][col] !== 0;
 
         if (isGiven) {
-            cell.classList.add("given");
+            cell.classList.add(
+                "given"
+            );
         } else if (value !== 0) {
-            cell.classList.add("user");
+            cell.classList.add(
+                "user"
+            );
         }
 
         const sameRow =
@@ -1511,14 +1941,14 @@ function renderBoard() {
 
         const sameBox =
             Math.floor(row / 3) ===
-                Math.floor(selectedRow / 3) &&
+                Math.floor(
+                    selectedRow / 3
+                ) &&
             Math.floor(col / 3) ===
-                Math.floor(selectedCol / 3);
+                Math.floor(
+                    selectedCol / 3
+                );
 
-        /*
-         * Only editable cells receive related styling.
-         * Pre-filled cells remain grey unless selected.
-         */
         if (
             !isGiven &&
             (
@@ -1527,29 +1957,32 @@ function renderBoard() {
                 sameBox
             )
         ) {
-            cell.classList.add("related");
+            cell.classList.add(
+                "related"
+            );
         }
 
-        /*
-         * Every selected cell receives the selected class.
-         * The CSS decides whether it is light blue
-         * (editable) or dark blue (pre-filled).
-         */
         if (
             index === state.selected
         ) {
-            cell.classList.add("selected");
+            cell.classList.add(
+                "selected"
+            );
         }
 
         if (
             conflicts.has(index)
         ) {
-            cell.classList.add("conflict");
+            cell.classList.add(
+                "conflict"
+            );
         }
 
         if (value !== 0) {
             const valueElement =
-                document.createElement("span");
+                document.createElement(
+                    "span"
+                );
 
             valueElement.className =
                 "value";
@@ -1562,13 +1995,16 @@ function renderBoard() {
             );
         } else {
             const candidatesElement =
-                document.createElement("div");
+                document.createElement(
+                    "div"
+                );
 
             candidatesElement.className =
                 "candidates";
 
             const candidates =
-                state.candidates[row][col] || [];
+                state.candidates[row][col] ||
+                [];
 
             for (
                 let number = 1;
@@ -1576,7 +2012,9 @@ function renderBoard() {
                 number++
             ) {
                 const candidate =
-                    document.createElement("span");
+                    document.createElement(
+                        "span"
+                    );
 
                 candidate.className =
                     "candidate";
@@ -1601,8 +2039,18 @@ function renderBoard() {
         cell.addEventListener(
             "click",
             () => {
-                state.selected = index;
+                if (
+                    !state.running ||
+                    state.completed
+                ) {
+                    return;
+                }
+
+                state.selected =
+                    index;
+
                 renderBoard();
+                saveGame();
             }
         );
 
@@ -1638,6 +2086,7 @@ function renderBoard() {
         state.autoCandidates
     );
 }
+
 
 /* =========================================================
    Input
@@ -1678,11 +2127,17 @@ function placeNumber(number) {
         }
 
         renderBoard();
+        saveGame();
+
         checkCompletion();
 
         return;
     }
 
+    /*
+     * Automatic Candidates controls the
+     * candidate set automatically.
+     */
     if (
         state.autoCandidates
     ) {
@@ -1705,7 +2160,9 @@ function placeNumber(number) {
     }
 
     renderBoard();
+    saveGame();
 }
+
 
 function clearSelectedCell() {
     if (
@@ -1735,16 +2192,34 @@ function clearSelectedCell() {
     }
 
     renderBoard();
+    saveGame();
 }
 
+
 function togglePencilMode() {
+    if (
+        !state.running ||
+        state.completed
+    ) {
+        return;
+    }
+
     state.pencilMode =
         !state.pencilMode;
 
     renderBoard();
+    saveGame();
 }
 
+
 function toggleAutoCandidates() {
+    if (
+        !state.running ||
+        state.completed
+    ) {
+        return;
+    }
+
     state.autoCandidates =
         !state.autoCandidates;
 
@@ -1755,7 +2230,9 @@ function toggleAutoCandidates() {
     }
 
     renderBoard();
+    saveGame();
 }
+
 
 /* =========================================================
    Reset current puzzle
@@ -1775,17 +2252,12 @@ function resetGame() {
     stopTimer();
 
     state.board =
-        cloneGrid(state.puzzle);
+        cloneGrid(
+            state.puzzle
+        );
 
     state.candidates =
-        Array.from(
-            { length: SIZE },
-            () =>
-                Array.from(
-                    { length: SIZE },
-                    () => []
-                )
-        );
+        createEmptyCandidates();
 
     state.selected = 0;
     state.pencilMode = false;
@@ -1795,6 +2267,7 @@ function resetGame() {
     state.completed = false;
 
     state.elapsedSeconds = 0;
+    state.secondsSinceSave = 0;
 
     timerElement.textContent =
         "00:00";
@@ -1803,15 +2276,28 @@ function resetGame() {
         "hidden"
     );
 
+    startScreen.classList.add(
+        "hidden"
+    );
+
     renderBoard();
+    saveGame();
     startTimer();
 }
+
 
 /* =========================================================
    Keyboard navigation
    ========================================================= */
 
 function moveSelection(direction) {
+    if (
+        !state.running ||
+        state.completed
+    ) {
+        return;
+    }
+
     let [row, col] =
         indexToRowCol(
             state.selected
@@ -1842,17 +2328,28 @@ function moveSelection(direction) {
         );
 
     renderBoard();
+    saveGame();
 }
+
 
 document.addEventListener(
     "keydown",
     event => {
         if (
+            !state.running ||
+            state.completed
+        ) {
+            return;
+        }
+
+        if (
             event.key === " " ||
             event.code === "Space"
         ) {
             event.preventDefault();
+
             togglePencilMode();
+
             return;
         }
 
@@ -1898,6 +2395,7 @@ document.addEventListener(
     }
 );
 
+
 /* =========================================================
    Completion
    ========================================================= */
@@ -1940,6 +2438,7 @@ function checkCompletion() {
     completeGame();
 }
 
+
 function completeGame() {
     if (
         state.completed
@@ -1952,6 +2451,12 @@ function completeGame() {
 
     stopTimer();
 
+    /*
+     * Completed games are not offered as
+     * resumable games.
+     */
+    clearSavedGame();
+
     completionTime.textContent =
         formatTime(
             state.elapsedSeconds
@@ -1962,7 +2467,10 @@ function completeGame() {
     );
 
     renderBoard();
+
+    updateContinueButton();
 }
+
 
 /* =========================================================
    Timer
@@ -1978,14 +2486,23 @@ function startTimer() {
                 !state.completed
             ) {
                 state.elapsedSeconds++;
+                state.secondsSinceSave++;
 
                 timerElement.textContent =
                     formatTime(
                         state.elapsedSeconds
                     );
+
+                if (
+                    state.secondsSinceSave >=
+                    SAVE_INTERVAL_SECONDS
+                ) {
+                    saveGame();
+                }
             }
         }, 1000);
 }
+
 
 function stopTimer() {
     if (
@@ -1999,10 +2516,16 @@ function stopTimer() {
     }
 }
 
+
 /* =========================================================
    Start screen / New Game
    ========================================================= */
 
+/*
+ * The start screen is shown whenever the user
+ * chooses New Game and also on every fresh
+ * page load.
+ */
 function showStartScreen() {
     stopTimer();
 
@@ -2016,8 +2539,15 @@ function showStartScreen() {
     startScreen.classList.remove(
         "hidden"
     );
+
+    updateContinueButton();
 }
 
+
+/*
+ * Start Game always creates a completely
+ * new puzzle and replaces the saved game.
+ */
 function startGame() {
     const config =
         difficultyConfig[
@@ -2041,14 +2571,7 @@ function startGame() {
         );
 
     state.candidates =
-        Array.from(
-            { length: SIZE },
-            () =>
-                Array.from(
-                    { length: SIZE },
-                    () => []
-                )
-        );
+        createEmptyCandidates();
 
     state.selected = 0;
     state.pencilMode = false;
@@ -2058,6 +2581,7 @@ function startGame() {
     state.completed = false;
 
     state.elapsedSeconds = 0;
+    state.secondsSinceSave = 0;
 
     timerElement.textContent =
         "00:00";
@@ -2071,8 +2595,18 @@ function startGame() {
     );
 
     renderBoard();
+
+    /*
+     * Saving immediately ensures that even a
+     * newly generated puzzle can be continued.
+     */
+    saveGame();
+
     startTimer();
+
+    updateContinueButton();
 }
+
 
 /* =========================================================
    Difficulty
@@ -2095,6 +2629,7 @@ function selectDifficulty(
     );
 }
 
+
 /* =========================================================
    UI Events
    ========================================================= */
@@ -2112,35 +2647,48 @@ difficultyButtons.forEach(
     }
 );
 
+
 startButton.addEventListener(
     "click",
     startGame
 );
+
+
+continueButton.addEventListener(
+    "click",
+    continueSavedGame
+);
+
 
 pencilButton.addEventListener(
     "click",
     togglePencilMode
 );
 
+
 autoCandidateButton.addEventListener(
     "click",
     toggleAutoCandidates
 );
+
 
 resetButton.addEventListener(
     "click",
     resetGame
 );
 
+
 newGameControl.addEventListener(
     "click",
     showStartScreen
 );
 
+
 newGameButton.addEventListener(
     "click",
     showStartScreen
 );
+
 
 closeCompletionButton.addEventListener(
     "click",
@@ -2151,10 +2699,41 @@ closeCompletionButton.addEventListener(
     }
 );
 
+
 /* =========================================================
-   Initial state
+   Save when the page is backgrounded or closed
    ========================================================= */
 
+window.addEventListener(
+    "pagehide",
+    () => {
+        saveGame();
+    }
+);
+
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+        if (
+            document.visibilityState ===
+                "hidden"
+        ) {
+            saveGame();
+        }
+    }
+);
+
+
+/* =========================================================
+   Initial startup
+   ========================================================= */
+
+/*
+ * Initialize an empty board for the game
+ * interface. Do NOT restore the saved game
+ * into the active state automatically.
+ */
 state.solution =
     createEmptyGrid();
 
@@ -2165,14 +2744,7 @@ state.board =
     createEmptyGrid();
 
 state.candidates =
-    Array.from(
-        { length: SIZE },
-        () =>
-            Array.from(
-                { length: SIZE },
-                () => []
-            )
-    );
+    createEmptyCandidates();
 
 selectDifficulty("easy");
 
@@ -2183,6 +2755,20 @@ difficultyDisplay.textContent =
     "EASY";
 
 renderBoard();
+
+/*
+ * Every page load starts on the start screen.
+ * The Continue button is shown only if a
+ * valid saved game is available.
+ */
+state.running = false;
+state.completed = false;
+
+startScreen.classList.remove(
+    "hidden"
+);
+
+updateContinueButton();
 </script>
 
 </body>
