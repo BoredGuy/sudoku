@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Sudoku</title>
-
 <style>
 :root {
     --paper:#f7f7f5;
@@ -24,14 +23,11 @@
     --user:#315f8c;
     --conflict:#a52a2a;
     --candidate:#686868;
-    --update:#a52a2a;
 }
-
 * {
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
 }
-
 html,body {
     margin:0;
     width:100%;
@@ -39,7 +35,6 @@ html,body {
     background:var(--paper);
     color:var(--ink);
 }
-
 body {
     font-family:Georgia,"Times New Roman",serif;
     min-height:100vh;
@@ -48,48 +43,40 @@ body {
     justify-content:center;
     padding:22px 16px;
 }
-
 button { font:inherit; touch-action:manipulation; }
-
 .app {
     width:min(100%,640px);
     display:flex;
     flex-direction:column;
 }
-
 .masthead {
     border-top:3px solid var(--ink);
     border-bottom:1px solid var(--ink);
     padding:9px 0 8px;
     margin-bottom:18px;
 }
-
 .masthead-inner {
     display:flex;
     align-items:center;
     justify-content:center;
 }
-
 .brand {
     font-size:clamp(2.2rem,9vw,4rem);
     line-height:.86;
     font-weight:normal;
     letter-spacing:-.07em;
 }
-
 .game-heading {
     border-bottom:1px solid var(--rule);
     padding-bottom:13px;
     margin-bottom:14px;
 }
-
 .heading-row {
     display:flex;
     align-items:baseline;
     justify-content:space-between;
     gap:18px;
 }
-
 .game-meta {
     display:flex;
     align-items:baseline;
@@ -101,10 +88,8 @@ button { font:inherit; touch-action:manipulation; }
     letter-spacing:.08em;
     white-space:nowrap;
 }
-
 #difficultyDisplay { font-weight:700; }
 #timer { color:var(--muted); font-variant-numeric:tabular-nums; }
-
 .board-wrap {
     width:100%;
     aspect-ratio:1;
@@ -112,7 +97,6 @@ button { font:inherit; touch-action:manipulation; }
     background:var(--ink);
     flex-shrink:0;
 }
-
 #board {
     width:100%;
     height:100%;
@@ -122,7 +106,6 @@ button { font:inherit; touch-action:manipulation; }
     gap:1px;
     background:var(--ink);
 }
-
 .cell {
     position:relative;
     min-width:0;
@@ -133,21 +116,17 @@ button { font:inherit; touch-action:manipulation; }
     outline:none;
     touch-action:manipulation;
 }
-
 .cell.related { background:var(--related); }
 .cell.selected { background:var(--selected); }
 .cell.given,.cell.given.related { background:var(--given-background); }
 .cell.given.selected { background:var(--given-selected); }
-
 .cell:nth-child(3n):not(:nth-child(9n)) {
     border-right:2px solid var(--ink);
 }
-
 .cell:nth-child(n+19):nth-child(-n+27),
 .cell:nth-child(n+46):nth-child(-n+54) {
     border-bottom:2px solid var(--ink);
 }
-
 .value {
     position:absolute;
     inset:0;
@@ -158,13 +137,11 @@ button { font:inherit; touch-action:manipulation; }
     font-size:clamp(1.45rem,7vw,2.55rem);
     line-height:1;
 }
-
 .cell.given .value { color:var(--given-text);font-weight:700; }
 .cell.given.selected .value { color:var(--given-selected-text); }
 .cell.user .value { color:var(--user);font-weight:normal; }
 .cell.conflict .value { color:var(--conflict); }
 .cell.given.selected.conflict .value { color:var(--conflict); }
-
 .candidates {
     position:absolute;
     inset:5%;
@@ -173,7 +150,6 @@ button { font:inherit; touch-action:manipulation; }
     grid-template-rows:repeat(3,1fr);
     pointer-events:none;
 }
-
 .candidate {
     display:flex;
     align-items:center;
@@ -184,9 +160,7 @@ button { font:inherit; touch-action:manipulation; }
     line-height:1;
     font-variant-numeric:tabular-nums;
 }
-
 .candidate.conflict { color:var(--conflict);font-weight:700; }
-
 .controls {
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -194,7 +168,6 @@ button { font:inherit; touch-action:manipulation; }
     border-bottom:1px solid var(--ink);
     margin-top:15px;
 }
-
 .control-button {
     min-height:47px;
     border:0;
@@ -208,15 +181,12 @@ button { font:inherit; touch-action:manipulation; }
     text-transform:uppercase;
     letter-spacing:.06em;
 }
-
 .control-button:last-child { border-right:0; }
-
 .control-button:hover,
 .control-button.active {
     background:var(--ink);
     color:#fff;
 }
-
 .control-button:focus-visible,
 .difficulty-button:focus-visible,
 #startButton:focus-visible,
@@ -226,12 +196,10 @@ button { font:inherit; touch-action:manipulation; }
     outline:2px solid var(--user);
     outline-offset:-2px;
 }
-
 /* Virtual keypad: hidden on desktop */
 .number-pad {
     display:none;
 }
-
 .footer {
     display:flex;
     justify-content:space-between;
@@ -244,27 +212,6 @@ button { font:inherit; touch-action:manipulation; }
     text-transform:uppercase;
     letter-spacing:.05em;
 }
-
-.deployment-indicator {
-    margin-top:10px;
-    min-height:1.35em;
-    font-family:Arial,Helvetica,sans-serif;
-    color:var(--muted);
-    font-size:.57rem;
-    line-height:1.35;
-    text-transform:uppercase;
-    letter-spacing:.045em;
-    text-align:center;
-    font-variant-numeric:tabular-nums;
-}
-
-.deployment-indicator.update-pending {
-    color:var(--update);
-    font-weight:700;
-}
-
-.deployment-indicator.error { color:var(--muted); }
-
 .start-screen {
     position:fixed;
     inset:0;
@@ -277,12 +224,10 @@ button { font:inherit; touch-action:manipulation; }
     padding-top:env(safe-area-inset-top,24px);
     padding-bottom:env(safe-area-inset-bottom,24px);
 }
-
 .start-content {
     width:min(100%,430px);
     text-align:center;
 }
-
 .start-content h2 {
     margin:0 0 28px;
     font-size:clamp(3.5rem,17vw,6rem);
@@ -290,7 +235,6 @@ button { font:inherit; touch-action:manipulation; }
     font-weight:normal;
     letter-spacing:-.08em;
 }
-
 .difficulty-picker {
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -298,7 +242,6 @@ button { font:inherit; touch-action:manipulation; }
     border-bottom:1px solid var(--ink);
     margin-bottom:13px;
 }
-
 .difficulty-button {
     min-height:48px;
     border:0;
@@ -312,16 +255,13 @@ button { font:inherit; touch-action:manipulation; }
     text-transform:uppercase;
     letter-spacing:.08em;
 }
-
 .difficulty-button:last-child { border-right:0; }
 .difficulty-button.active { background:var(--ink);color:white; }
-
 .start-actions {
     display:grid;
     grid-template-columns:1fr;
     gap:8px;
 }
-
 #startButton,#continueButton {
     width:100%;
     min-height:54px;
@@ -332,10 +272,8 @@ button { font:inherit; touch-action:manipulation; }
     text-transform:uppercase;
     letter-spacing:.1em;
 }
-
 #startButton { border:0;background:var(--ink);color:white; }
 #continueButton { background:transparent;color:var(--ink);border:1px solid var(--ink); }
-
 .completion-overlay {
     position:fixed;
     inset:0;
@@ -346,7 +284,6 @@ button { font:inherit; touch-action:manipulation; }
     justify-content:center;
     padding:24px;
 }
-
 .completion {
     width:min(100%,410px);
     background:var(--paper);
@@ -355,7 +292,6 @@ button { font:inherit; touch-action:manipulation; }
     padding:25px 22px 22px;
     text-align:center;
 }
-
 .completion-kicker {
     margin-bottom:8px;
     font-family:Arial,Helvetica,sans-serif;
@@ -364,7 +300,6 @@ button { font:inherit; touch-action:manipulation; }
     text-transform:uppercase;
     letter-spacing:.12em;
 }
-
 .completion h2 {
     margin:0 0 9px;
     font-size:3rem;
@@ -372,17 +307,14 @@ button { font:inherit; touch-action:manipulation; }
     font-weight:normal;
     letter-spacing:-.06em;
 }
-
 .completion p { margin:0 0 23px;font-size:.95rem;color:var(--muted); }
 .completion strong { color:var(--ink);font-variant-numeric:tabular-nums; }
-
 .completion-actions {
     display:grid;
     grid-template-columns:1fr 1fr;
     border-top:1px solid var(--ink);
     border-bottom:1px solid var(--ink);
 }
-
 .completion-actions button {
     min-height:48px;
     border:0;
@@ -394,13 +326,10 @@ button { font:inherit; touch-action:manipulation; }
     text-transform:uppercase;
     letter-spacing:.07em;
 }
-
 .completion-actions button:last-child { border-right:0; }
 #newGameButton { background:var(--ink);color:white; }
 #closeCompletionButton { background:transparent;color:var(--ink); }
-
 .hidden { display:none!important; }
-
 /* Compact mobile layout */
 @media (max-width:600px) {
     html,body {
@@ -410,14 +339,12 @@ button { font:inherit; touch-action:manipulation; }
         overflow:hidden;
         overscroll-behavior:none;
     }
-
     body {
         min-height:100vh;
         min-height:100dvh;
         padding:0;
         align-items:stretch;
     }
-
     .app {
         width:100%;
         height:100vh;
@@ -432,26 +359,21 @@ button { font:inherit; touch-action:manipulation; }
         justify-content:space-between;
         gap:0;
     }
-
     .masthead {
         flex:0 0 auto;
         margin-bottom:5px;
         padding:5px 0;
     }
-
     .brand { font-size:1.8rem; }
-
     .game-heading {
         flex:0 0 auto;
         margin-bottom:6px;
         padding-bottom:6px;
     }
-
     .game-meta {
         gap:12px;
         font-size:.62rem;
     }
-
     .board-wrap {
         width:min(100%,calc(100dvh - 265px));
         max-width:100%;
@@ -460,33 +382,26 @@ button { font:inherit; touch-action:manipulation; }
         min-height:0;
         aspect-ratio:1;
     }
-
     #board { width:100%;height:100%; }
-
     .value { font-size:clamp(1.1rem,7.4vw,2rem); }
     .candidate { font-size:clamp(.38rem,2.5vw,.68rem); }
-
     .controls {
         flex:0 0 auto;
         grid-template-columns:1fr 1fr;
         margin-top:7px;
     }
-
     .control-button {
         min-height:37px;
         font-size:.59rem;
     }
-
     .control-button:nth-child(3),
     .control-button:nth-child(4) {
         border-top:1px solid var(--rule);
     }
-
     .control-button:nth-child(2),
     .control-button:nth-child(4) {
         border-right:0;
     }
-
     /* Touch keypad */
     .number-pad {
         display:grid;
@@ -495,7 +410,6 @@ button { font:inherit; touch-action:manipulation; }
         gap:4px;
         margin-top:7px;
     }
-
     .number-key {
         min-width:0;
         min-height:clamp(37px,6.5vh,54px);
@@ -509,27 +423,21 @@ button { font:inherit; touch-action:manipulation; }
         border-radius:2px;
         padding:0;
     }
-
     .number-key:active,
     .number-key.active {
         background:var(--ink);
         color:white;
     }
-
     .number-key.erase {
         font-size:.72rem;
         letter-spacing:-.04em;
     }
-
     .number-key.pencil {
         font-size:.62rem;
         text-transform:uppercase;
         letter-spacing:-.04em;
     }
-
     .footer { display:none; }
-    .deployment-indicator { display:none; }
-
     .start-screen {
         padding:
             max(24px,env(safe-area-inset-top))
@@ -537,7 +445,6 @@ button { font:inherit; touch-action:manipulation; }
             max(24px,env(safe-area-inset-bottom));
     }
 }
-
 /* Short landscape screens */
 @media (max-width:600px) and (orientation:landscape) {
     .app {
@@ -547,17 +454,14 @@ button { font:inherit; touch-action:manipulation; }
         column-gap:10px;
         row-gap:4px;
     }
-
     .masthead {
         grid-column:1;
         grid-row:1;
     }
-
     .game-heading {
         grid-column:1;
         grid-row:2;
     }
-
     .board-wrap {
         grid-column:1;
         grid-row:3 / 5;
@@ -568,14 +472,12 @@ button { font:inherit; touch-action:manipulation; }
         justify-self:center;
         align-self:center;
     }
-
     .controls {
         grid-column:2;
         grid-row:1;
         align-self:end;
         margin-top:0;
     }
-
     .number-pad {
         grid-column:2;
         grid-row:2 / 5;
@@ -584,82 +486,66 @@ button { font:inherit; touch-action:manipulation; }
         gap:5px;
         margin:0;
     }
-
     .number-key { min-height:clamp(34px,10dvh,54px); }
 }
 </style>
 </head>
-
 <body>
-
 <div id="startScreen" class="start-screen">
     <div class="start-content">
         <h2>Sudoku</h2>
-
-        <div class="difficulty-picker">
-            <button class="difficulty-button active" data-difficulty="easy">Easy</button>
-            <button class="difficulty-button" data-difficulty="medium">Medium</button>
-            <button class="difficulty-button" data-difficulty="hard">Hard</button>
-        </div>
-
-        <div class="start-actions">
-            <button id="startButton">Start Game</button>
-            <button id="continueButton" class="hidden">Continue</button>
-        </div>
-
-        <div id="startDeploymentIndicator" class="deployment-indicator" aria-live="polite">Checking deployment…</div>
+    <div class="difficulty-picker">
+        <button class="difficulty-button active" data-difficulty="easy">Easy</button>
+        <button class="difficulty-button" data-difficulty="medium">Medium</button>
+        <button class="difficulty-button" data-difficulty="hard">Hard</button>
+    </div>
+    <div class="start-actions">
+        <button id="startButton">Start Game</button>
+        <button id="continueButton" class="hidden">Continue</button>
     </div>
 </div>
-
+</div>
 <main class="app">
     <header class="masthead">
         <div class="masthead-inner"><div class="brand">Sudoku</div></div>
     </header>
-
-    <section class="game-heading">
-        <div class="heading-row">
-            <div class="game-meta">
-                <span id="difficultyDisplay">EASY</span>
-                <span id="timer">00:00</span>
-            </div>
+<section class="game-heading">
+    <div class="heading-row">
+        <div class="game-meta">
+            <span id="difficultyDisplay">EASY</span>
+            <span id="timer">00:00</span>
         </div>
-    </section>
-
-    <section class="board-wrap" aria-label="Sudoku board">
-        <div id="board" role="grid" aria-label="Sudoku puzzle"></div>
-    </section>
-
-    <section class="controls">
-        <button id="pencilButton" class="control-button">Pencil: OFF</button>
-        <button id="autoCandidateButton" class="control-button">Auto Candidates: OFF</button>
-        <button id="resetButton" class="control-button">Reset</button>
-        <button id="newGameControl" class="control-button">New Game</button>
-    </section>
-
-    <section id="numberPad" class="number-pad" aria-label="Number pad">
-        <button class="number-key" data-number="1">1</button>
-        <button class="number-key" data-number="2">2</button>
-        <button class="number-key" data-number="3">3</button>
-        <button class="number-key" data-number="4">4</button>
-        <button class="number-key" data-number="5">5</button>
-        <button class="number-key" data-number="6">6</button>
-        <button class="number-key" data-number="7">7</button>
-        <button class="number-key" data-number="8">8</button>
-        <button class="number-key" data-number="9">9</button>
-        <button class="number-key erase" data-action="erase" aria-label="Erase selected cell">⌫</button>
-        <button class="number-key pencil" data-action="pencil" aria-label="Toggle pencil mode">Pencil</button>
-        <button class="number-key" data-action="move" aria-label="Move to next cell">→</button>
-    </section>
-
-    <footer class="footer">
-        <span>1–9 Enter Number</span>
-        <span>Space Pencil</span>
-        <span>← ↑ ↓ → Navigate</span>
-    </footer>
-
-    <div id="gameDeploymentIndicator" class="deployment-indicator" aria-live="polite">Checking deployment…</div>
+    </div>
+</section>
+<section class="board-wrap" aria-label="Sudoku board">
+    <div id="board" role="grid" aria-label="Sudoku puzzle"></div>
+</section>
+<section class="controls">
+    <button id="pencilButton" class="control-button">Pencil: OFF</button>
+    <button id="autoCandidateButton" class="control-button">Auto Candidates: OFF</button>
+    <button id="resetButton" class="control-button">Reset</button>
+    <button id="newGameControl" class="control-button">New Game</button>
+</section>
+<section id="numberPad" class="number-pad" aria-label="Number pad">
+    <button class="number-key" data-number="1">1</button>
+    <button class="number-key" data-number="2">2</button>
+    <button class="number-key" data-number="3">3</button>
+    <button class="number-key" data-number="4">4</button>
+    <button class="number-key" data-number="5">5</button>
+    <button class="number-key" data-number="6">6</button>
+    <button class="number-key" data-number="7">7</button>
+    <button class="number-key" data-number="8">8</button>
+    <button class="number-key" data-number="9">9</button>
+    <button class="number-key erase" data-action="erase" aria-label="Erase selected cell">⌫</button>
+    <button class="number-key pencil" data-action="pencil" aria-label="Toggle pencil mode">Pencil</button>
+    <button class="number-key" data-action="move" aria-label="Move to next cell">→</button>
+</section>
+<footer class="footer">
+    <span>1–9 Enter Number</span>
+    <span>Space Pencil</span>
+    <span>← ↑ ↓ → Navigate</span>
+</footer>
 </main>
-
 <div id="completionOverlay" class="completion-overlay hidden">
     <div class="completion">
         <div class="completion-kicker">Puzzle Solved</div>
@@ -671,25 +557,13 @@ button { font:inherit; touch-action:manipulation; }
         </div>
     </div>
 </div>
-
 <script>
 "use strict";
-
-/* GitHub configuration */
-const GITHUB_OWNER = "BoredGuy";
-const GITHUB_REPOSITORY = "sudoku";
-const GITHUB_BRANCH = "main";
-const GITHUB_REPOSITORY_API =
-    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPOSITORY}`;
-
-const GITHUB_REQUEST_TIMEOUT_MS = 10000;
-
 /* Constants */
 const SIZE = 9;
 const BOX = 3;
 const STORAGE_KEY = "sudoku-active-game-v1";
 const SAVE_INTERVAL_SECONDS = 5;
-
 /* State */
 const state = {
     solution: [],
@@ -706,13 +580,11 @@ const state = {
     timerInterval: null,
     secondsSinceSave: 0
 };
-
 const difficultyConfig = {
     easy:{clues:42},
     medium:{clues:34},
     hard:{clues:28}
 };
-
 /* DOM */
 const boardElement = document.getElementById("board");
 const timerElement = document.getElementById("timer");
@@ -720,8 +592,6 @@ const difficultyDisplay = document.getElementById("difficultyDisplay");
 const startScreen = document.getElementById("startScreen");
 const startButton = document.getElementById("startButton");
 const continueButton = document.getElementById("continueButton");
-const startDeploymentIndicator = document.getElementById("startDeploymentIndicator");
-const gameDeploymentIndicator = document.getElementById("gameDeploymentIndicator");
 const pencilButton = document.getElementById("pencilButton");
 const autoCandidateButton = document.getElementById("autoCandidateButton");
 const resetButton = document.getElementById("resetButton");
@@ -732,99 +602,6 @@ const newGameButton = document.getElementById("newGameButton");
 const closeCompletionButton = document.getElementById("closeCompletionButton");
 const difficultyButtons = document.querySelectorAll(".difficulty-button");
 const numberPad = document.getElementById("numberPad");
-
-/* GitHub deployment */
-function formatRelativeTime(dateString) {
-    const timestamp = Date.parse(dateString);
-    if (Number.isNaN(timestamp)) return "";
-
-    const seconds = Math.max(0, Math.floor((Date.now()-timestamp)/1000));
-    if (seconds < 60) return "just now";
-
-    const minutes = Math.floor(seconds/60);
-    if (minutes < 60) return `${minutes} min${minutes===1?"":"s"} ago`;
-
-    const hours = Math.floor(minutes/60);
-    if (hours < 24) return `${hours} hr${hours===1?"":"s"} ago`;
-
-    const days = Math.floor(hours/24);
-    if (days < 7) return `${days} day${days===1?"":"s"} ago`;
-
-    return new Intl.DateTimeFormat(undefined,{year:"numeric",month:"short",day:"numeric"}).format(new Date(timestamp));
-}
-
-function shortSha(sha) {
-    return typeof sha==="string" ? sha.slice(0,7) : "";
-}
-
-function setDeploymentIndicator(text,stateClass="") {
-    [startDeploymentIndicator,gameDeploymentIndicator].forEach(el=>{
-        el.textContent=text;
-        el.classList.remove("update-pending","error");
-        if(stateClass) el.classList.add(stateClass);
-    });
-}
-
-async function fetchGitHubJson(endpoint) {
-    const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(),GITHUB_REQUEST_TIMEOUT_MS);
-
-    try {
-        const response = await fetch(endpoint+(endpoint.includes("?")?"&":"?")+"cacheBust="+Date.now(),{
-            method:"GET",
-            cache:"no-store",
-            signal:controller.signal
-        });
-
-        if(!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    } catch(error) {
-        if(error.name==="AbortError") throw new Error("Request timed out");
-        throw error;
-    } finally {
-        clearTimeout(timeout);
-    }
-}
-
-async function checkDeploymentStatus() {
-    setDeploymentIndicator("Checking deployment…");
-
-    try {
-        const pages = await fetchGitHubJson(`${GITHUB_REPOSITORY_API}/pages/builds/latest`);
-        const main = await fetchGitHubJson(`${GITHUB_REPOSITORY_API}/commits/${encodeURIComponent(GITHUB_BRANCH)}`);
-
-        const deployedSha = pages.commit;
-        const latestSha = main.sha;
-        const status = pages.status||"";
-        const deployedTime = formatRelativeTime(pages.updated_at||pages.created_at||"");
-
-        if(!deployedSha||!latestSha) throw new Error("Deployment data unavailable");
-
-        if(status && status!=="built") {
-            setDeploymentIndicator(`PAGES ${status.toUpperCase()} · MAIN ${shortSha(latestSha)}`);
-            return;
-        }
-
-        if(deployedSha===latestSha) {
-            setDeploymentIndicator(`LIVE ${shortSha(deployedSha)}${deployedTime?" · "+deployedTime:""}`);
-            return;
-        }
-
-        const mainDate=Date.parse(main.commit?.author?.date||"");
-        const deployedDate=Date.parse(pages.updated_at||pages.created_at||"");
-
-        if(!Number.isNaN(mainDate)&&!Number.isNaN(deployedDate)&&mainDate>deployedDate) {
-            setDeploymentIndicator(`LIVE ${shortSha(deployedSha)}${deployedTime?" · "+deployedTime:""} · UPDATE PENDING ${shortSha(latestSha)}`,"update-pending");
-            return;
-        }
-
-        setDeploymentIndicator(`LIVE ${shortSha(deployedSha)}${deployedTime?" · "+deployedTime:""} · MAIN ${shortSha(latestSha)}`);
-    } catch(error) {
-        setDeploymentIndicator(`GITHUB: ${error.message||"Unknown error"}`,"error");
-        console.error("Deployment check failed:",error);
-    }
-}
-
 /* Utilities */
 function shuffle(array) {
     const result=array.slice();
@@ -834,28 +611,21 @@ function shuffle(array) {
     }
     return result;
 }
-
 function createEmptyGrid() {
     return Array.from({length:SIZE},()=>Array(SIZE).fill(0));
 }
-
 function cloneGrid(grid) { return grid.map(row=>row.slice()); }
-
 function createEmptyCandidates() {
     return Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>[]));
 }
-
 function formatTime(seconds) {
     return String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");
 }
-
 function indexToRowCol(index) { return [Math.floor(index/SIZE),index%SIZE]; }
 function rowColToIndex(row,col) { return row*SIZE+col; }
-
 /* Persistence */
 function saveGame() {
     if(!state.running||state.completed||state.puzzle.length!==SIZE) return;
-
     const saved={
         version:1,
         solution:cloneGrid(state.solution),
@@ -868,21 +638,17 @@ function saveGame() {
         autoCandidates:state.autoCandidates,
         elapsedSeconds:state.elapsedSeconds
     };
-
     try { localStorage.setItem(STORAGE_KEY,JSON.stringify(saved)); } catch(error) {}
     state.secondsSinceSave=0;
 }
-
 function clearSavedGame() {
     try { localStorage.removeItem(STORAGE_KEY); } catch(error) {}
 }
-
 function isValidGrid(grid) {
     return Array.isArray(grid)&&grid.length===9&&grid.every(row=>
         Array.isArray(row)&&row.length===9&&row.every(v=>Number.isInteger(v)&&v>=0&&v<=9)
     );
 }
-
 function isValidCandidates(candidates) {
     return Array.isArray(candidates)&&candidates.length===9&&candidates.every(row=>
         Array.isArray(row)&&row.length===9&&row.every(cell=>
@@ -890,7 +656,6 @@ function isValidCandidates(candidates) {
         )
     );
 }
-
 function readSavedGame() {
     let saved;
     try {
@@ -901,7 +666,6 @@ function readSavedGame() {
         clearSavedGame();
         return null;
     }
-
     if(!saved||saved.version!==1||
        !isValidGrid(saved.solution)||!isValidGrid(saved.puzzle)||
        !isValidGrid(saved.board)||!isValidCandidates(saved.candidates)||
@@ -914,15 +678,12 @@ function readSavedGame() {
     }
     return saved;
 }
-
 function updateContinueButton() {
     continueButton.classList.toggle("hidden",readSavedGame()===null);
 }
-
 function continueSavedGame() {
     const saved=readSavedGame();
     if(!saved) { updateContinueButton();return; }
-
     stopTimer();
     state.solution=cloneGrid(saved.solution);
     state.puzzle=cloneGrid(saved.puzzle);
@@ -936,7 +697,6 @@ function continueSavedGame() {
     state.secondsSinceSave=0;
     state.running=true;
     state.completed=false;
-
     if(state.autoCandidates) updateAllCandidates();
     selectDifficulty(state.difficulty);
     timerElement.textContent=formatTime(state.elapsedSeconds);
@@ -946,21 +706,17 @@ function continueSavedGame() {
     startTimer();
     requestFullscreen();
 }
-
 /* Sudoku generation */
 function isValidPlacement(grid,row,col,number) {
     for(let c=0;c<9;c++) if(grid[row][c]===number) return false;
     for(let r=0;r<9;r++) if(grid[r][col]===number) return false;
-
     const sr=Math.floor(row/3)*3;
     const sc=Math.floor(col/3)*3;
     for(let r=sr;r<sr+3;r++) for(let c=sc;c<sc+3;c++) if(grid[r][c]===number) return false;
     return true;
 }
-
 function solveGrid(grid) {
     let bestRow=-1,bestCol=-1,bestCandidates=null;
-
     for(let row=0;row<9;row++) {
         for(let col=0;col<9;col++) {
             if(grid[row][col]!==0) continue;
@@ -975,9 +731,7 @@ function solveGrid(grid) {
         }
         if(bestCandidates?.length===1) break;
     }
-
     if(bestCandidates===null) return true;
-
     for(const n of shuffle(bestCandidates)) {
         grid[bestRow][bestCol]=n;
         if(solveGrid(grid)) return true;
@@ -985,16 +739,13 @@ function solveGrid(grid) {
     }
     return false;
 }
-
 function generateSolution() {
     const grid=createEmptyGrid();
     solveGrid(grid);
     return grid;
 }
-
 function countSolutions(grid,limit=2) {
     let bestRow=-1,bestCol=-1,bestCandidates=null;
-
     for(let row=0;row<9;row++) {
         for(let col=0;col<9;col++) {
             if(grid[row][col]!==0) continue;
@@ -1006,9 +757,7 @@ function countSolutions(grid,limit=2) {
             }
         }
     }
-
     if(bestCandidates===null) return 1;
-
     let count=0;
     for(const n of bestCandidates) {
         grid[bestRow][bestCol]=n;
@@ -1018,24 +767,20 @@ function countSolutions(grid,limit=2) {
     }
     return count;
 }
-
 function generatePuzzle(solution,clueCount) {
     const puzzle=cloneGrid(solution);
     const positions=shuffle(Array.from({length:81},(_,i)=>i));
     let clues=81;
-
     for(const index of positions) {
         if(clues<=clueCount) break;
         const [row,col]=indexToRowCol(index);
         const previous=puzzle[row][col];
         puzzle[row][col]=0;
-
         if(countSolutions(cloneGrid(puzzle),2)!==1) puzzle[row][col]=previous;
         else clues--;
     }
     return puzzle;
 }
-
 /* Candidates */
 function getCandidates(row,col) {
     if(state.board[row][col]!==0) return [];
@@ -1043,18 +788,15 @@ function getCandidates(row,col) {
     for(let n=1;n<=9;n++) if(isValidPlacement(state.board,row,col,n)) candidates.push(n);
     return candidates;
 }
-
 function updateAllCandidates() {
     if(!state.autoCandidates) return;
     for(let row=0;row<9;row++) for(let col=0;col<9;col++) {
         if(state.board[row][col]===0) state.candidates[row][col]=getCandidates(row,col);
     }
 }
-
 /* Conflicts */
 function getConflicts() {
     const conflicts=new Set();
-
     function scan(indices) {
         const seen=new Map();
         for(const index of indices) {
@@ -1067,10 +809,8 @@ function getConflicts() {
             } else seen.set(value,index);
         }
     }
-
     for(let r=0;r<9;r++) scan(Array.from({length:9},(_,c)=>rowColToIndex(r,c)));
     for(let c=0;c<9;c++) scan(Array.from({length:9},(_,r)=>rowColToIndex(r,c)));
-
     for(let br=0;br<3;br++) for(let bc=0;bc<3;bc++) {
         const indices=[];
         for(let r=br*3;r<br*3+3;r++) for(let c=bc*3;c<bc*3+3;c++) indices.push(rowColToIndex(r,c));
@@ -1078,34 +818,27 @@ function getConflicts() {
     }
     return conflicts;
 }
-
 /* Rendering */
 function renderBoard() {
     boardElement.innerHTML="";
     const conflicts=getConflicts();
     const [selectedRow,selectedCol]=indexToRowCol(state.selected);
-
     for(let index=0;index<81;index++) {
         const [row,col]=indexToRowCol(index);
         const cell=document.createElement("div");
         cell.className="cell";
         cell.setAttribute("role","gridcell");
         cell.setAttribute("aria-label",`Row ${row+1}, column ${col+1}, ${state.board[row][col]||"empty"}`);
-
         const value=state.board[row][col];
         const isGiven=state.puzzle[row][col]!==0;
-
         if(isGiven) cell.classList.add("given");
         else if(value!==0) cell.classList.add("user");
-
         const sameRow=row===selectedRow;
         const sameCol=col===selectedCol;
         const sameBox=Math.floor(row/3)===Math.floor(selectedRow/3)&&Math.floor(col/3)===Math.floor(selectedCol/3);
-
         if(!isGiven&&(sameRow||sameCol||sameBox)) cell.classList.add("related");
         if(index===state.selected) cell.classList.add("selected");
         if(conflicts.has(index)) cell.classList.add("conflict");
-
         if(value!==0) {
             const span=document.createElement("span");
             span.className="value";
@@ -1115,7 +848,6 @@ function renderBoard() {
             const marks=document.createElement("div");
             marks.className="candidates";
             const candidates=state.candidates[row][col]||[];
-
             for(let n=1;n<=9;n++) {
                 const mark=document.createElement("span");
                 mark.className="candidate";
@@ -1124,32 +856,26 @@ function renderBoard() {
             }
             cell.appendChild(marks);
         }
-
         cell.addEventListener("click",()=>{
             if(!state.running||state.completed) return;
             state.selected=index;
             renderBoard();
             saveGame();
         });
-
         boardElement.appendChild(cell);
     }
-
     difficultyDisplay.textContent=state.difficulty.toUpperCase();
     pencilButton.textContent=`Pencil: ${state.pencilMode?"ON":"OFF"}`;
     pencilButton.classList.toggle("active",state.pencilMode);
     autoCandidateButton.textContent=`Auto Candidates: ${state.autoCandidates?"ON":"OFF"}`;
     autoCandidateButton.classList.toggle("active",state.autoCandidates);
-
     numberPad.querySelector('[data-action="pencil"]').classList.toggle("active",state.pencilMode);
 }
-
 /* Input */
 function placeNumber(number) {
     if(!state.running||state.completed) return;
     const [row,col]=indexToRowCol(state.selected);
     if(state.puzzle[row][col]!==0) return;
-
     if(!state.pencilMode) {
         state.board[row][col]=number;
         state.candidates[row][col]=[];
@@ -1159,36 +885,29 @@ function placeNumber(number) {
         checkCompletion();
         return;
     }
-
     if(state.autoCandidates) return;
-
     const current=state.candidates[row][col]||[];
     state.candidates[row][col]=current.includes(number)
         ? current.filter(n=>n!==number)
         : [...current,number].sort();
-
     renderBoard();
     saveGame();
 }
-
 function clearSelectedCell() {
     if(!state.running||state.completed) return;
     const [row,col]=indexToRowCol(state.selected);
     if(state.puzzle[row][col]!==0) return;
-
     state.board[row][col]=0;
     if(state.autoCandidates) updateAllCandidates();
     renderBoard();
     saveGame();
 }
-
 function togglePencilMode() {
     if(!state.running||state.completed) return;
     state.pencilMode=!state.pencilMode;
     renderBoard();
     saveGame();
 }
-
 function toggleAutoCandidates() {
     if(!state.running||state.completed) return;
     state.autoCandidates=!state.autoCandidates;
@@ -1196,7 +915,6 @@ function toggleAutoCandidates() {
     renderBoard();
     saveGame();
 }
-
 /* Reset */
 function resetGame() {
     if(state.puzzle.length!==9||(!state.running&&!state.completed)) return;
@@ -1217,31 +935,25 @@ function resetGame() {
     saveGame();
     startTimer();
 }
-
 /* Navigation */
 function moveSelection(direction) {
     if(!state.running||state.completed) return;
     let [row,col]=indexToRowCol(state.selected);
-
     if(direction==="up") row=(row+8)%9;
     if(direction==="down") row=(row+1)%9;
     if(direction==="left") col=(col+8)%9;
     if(direction==="right") col=(col+1)%9;
-
     state.selected=rowColToIndex(row,col);
     renderBoard();
     saveGame();
 }
-
 document.addEventListener("keydown",event=>{
     if(!state.running||state.completed) return;
-
     if(event.key===" "||event.code==="Space") {
         event.preventDefault();
         togglePencilMode();
         return;
     }
-
     switch(event.key) {
         case "ArrowUp":event.preventDefault();moveSelection("up");return;
         case "ArrowDown":event.preventDefault();moveSelection("down");return;
@@ -1251,34 +963,27 @@ document.addEventListener("keydown",event=>{
         case "Delete":
         case "0":event.preventDefault();clearSelectedCell();return;
     }
-
     if(event.key>="1"&&event.key<="9") {
         event.preventDefault();
         placeNumber(Number(event.key));
     }
 });
-
 /* Virtual number pad */
 numberPad.addEventListener("click",event=>{
     const button=event.target.closest("button");
     if(!button||!state.running||state.completed) return;
-
     if(button.dataset.number) {
         placeNumber(Number(button.dataset.number));
         return;
     }
-
     if(button.dataset.action==="erase") clearSelectedCell();
     if(button.dataset.action==="pencil") togglePencilMode();
     if(button.dataset.action==="move") moveSelection("right");
 });
-
 /* Fullscreen */
 function requestFullscreen() {
     const root=document.documentElement;
-
     if(document.fullscreenElement) return;
-
     if(root.requestFullscreen) {
         root.requestFullscreen({navigationUI:"hide"}).catch(()=>{});
     }
@@ -1288,17 +993,14 @@ function requestFullscreen() {
      * available screen area and safe-area insets.
      */
 }
-
 /* Completion */
 function checkCompletion() {
     if(getConflicts().size>0) return;
-
     for(let row=0;row<9;row++) for(let col=0;col<9;col++) {
         if(state.board[row][col]===0||state.board[row][col]!==state.solution[row][col]) return;
     }
     completeGame();
 }
-
 function completeGame() {
     if(state.completed) return;
     state.completed=true;
@@ -1310,7 +1012,6 @@ function completeGame() {
     renderBoard();
     updateContinueButton();
 }
-
 /* Timer */
 function startTimer() {
     stopTimer();
@@ -1323,14 +1024,12 @@ function startTimer() {
         }
     },1000);
 }
-
 function stopTimer() {
     if(state.timerInterval!==null) {
         clearInterval(state.timerInterval);
         state.timerInterval=null;
     }
 }
-
 /* Start / New Game */
 function showStartScreen() {
     stopTimer();
@@ -1340,11 +1039,9 @@ function showStartScreen() {
     startScreen.classList.remove("hidden");
     updateContinueButton();
 }
-
 function startGame() {
     const config=difficultyConfig[state.difficulty];
     stopTimer();
-
     state.solution=generateSolution();
     state.puzzle=generatePuzzle(state.solution,config.clues);
     state.board=cloneGrid(state.puzzle);
@@ -1356,7 +1053,6 @@ function startGame() {
     state.completed=false;
     state.elapsedSeconds=0;
     state.secondsSinceSave=0;
-
     timerElement.textContent="00:00";
     completionOverlay.classList.add("hidden");
     startScreen.classList.add("hidden");
@@ -1365,7 +1061,6 @@ function startGame() {
     startTimer();
     requestFullscreen();
 }
-
 /* Difficulty */
 function selectDifficulty(difficulty) {
     state.difficulty=difficulty;
@@ -1373,12 +1068,10 @@ function selectDifficulty(difficulty) {
         button.classList.toggle("active",button.dataset.difficulty===difficulty);
     });
 }
-
 /* Events */
 difficultyButtons.forEach(button=>{
     button.addEventListener("click",()=>selectDifficulty(button.dataset.difficulty));
 });
-
 startButton.addEventListener("click",startGame);
 continueButton.addEventListener("click",continueSavedGame);
 pencilButton.addEventListener("click",togglePencilMode);
@@ -1386,33 +1079,26 @@ autoCandidateButton.addEventListener("click",toggleAutoCandidates);
 resetButton.addEventListener("click",resetGame);
 newGameControl.addEventListener("click",showStartScreen);
 newGameButton.addEventListener("click",showStartScreen);
-
 closeCompletionButton.addEventListener("click",()=>{
     completionOverlay.classList.add("hidden");
 });
-
 window.addEventListener("pagehide",saveGame);
-
 document.addEventListener("visibilitychange",()=>{
     if(document.visibilityState==="hidden") saveGame();
 });
-
 /* Startup */
 state.solution=createEmptyGrid();
 state.puzzle=createEmptyGrid();
 state.board=createEmptyGrid();
 state.candidates=createEmptyCandidates();
-
 selectDifficulty("easy");
 timerElement.textContent="00:00";
 difficultyDisplay.textContent="EASY";
 state.running=false;
 state.completed=false;
-
 renderBoard();
 startScreen.classList.remove("hidden");
 updateContinueButton();
-checkDeploymentStatus();
 </script>
 </body>
 </html>
