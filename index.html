@@ -1,3892 +1,1418 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#f7f7f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Sudoku</title>
 
 <style>
-    :root {
-        --paper: #f7f7f5;
-        --paper-alt: #eeeeeb;
-        --ink: #111111;
-        --muted: #666666;
-        --rule: #b7b7b3;
-        --heavy-rule: #111111;
+:root {
+    --paper:#f7f7f5;
+    --paper-alt:#eeeeeb;
+    --ink:#111;
+    --muted:#666;
+    --rule:#b7b7b3;
+    --selected:#dce8f4;
+    --related:#eeeeeb;
+    --given-background:#d2d2cf;
+    --given-text:#111;
+    --given-selected:#7899b8;
+    --given-selected-text:#fff;
+    --user:#315f8c;
+    --conflict:#a52a2a;
+    --candidate:#686868;
+    --update:#a52a2a;
+}
 
-        --selected: #dce8f4;
-        --related: #eeeeeb;
+* {
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
 
-        --given-background: #d2d2cf;
-        --given-text: #111111;
+html,body {
+    margin:0;
+    width:100%;
+    min-height:100%;
+    background:var(--paper);
+    color:var(--ink);
+}
 
-        --given-selected: #7899b8;
-        --given-selected-text: #ffffff;
+body {
+    font-family:Georgia,"Times New Roman",serif;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    justify-content:center;
+    padding:22px 16px;
+}
 
-        --user: #315f8c;
-        --conflict: #a52a2a;
-        --candidate: #686868;
+button { font:inherit; touch-action:manipulation; }
 
-        --update: #a52a2a;
+.app {
+    width:min(100%,640px);
+    display:flex;
+    flex-direction:column;
+}
+
+.masthead {
+    border-top:3px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    padding:9px 0 8px;
+    margin-bottom:18px;
+}
+
+.masthead-inner {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.brand {
+    font-size:clamp(2.2rem,9vw,4rem);
+    line-height:.86;
+    font-weight:normal;
+    letter-spacing:-.07em;
+}
+
+.game-heading {
+    border-bottom:1px solid var(--rule);
+    padding-bottom:13px;
+    margin-bottom:14px;
+}
+
+.heading-row {
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:18px;
+}
+
+.game-meta {
+    display:flex;
+    align-items:baseline;
+    gap:16px;
+    margin-left:auto;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:.7rem;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    white-space:nowrap;
+}
+
+#difficultyDisplay { font-weight:700; }
+#timer { color:var(--muted); font-variant-numeric:tabular-nums; }
+
+.board-wrap {
+    width:100%;
+    aspect-ratio:1;
+    border:1.5px solid var(--ink);
+    background:var(--ink);
+    flex-shrink:0;
+}
+
+#board {
+    width:100%;
+    height:100%;
+    display:grid;
+    grid-template-columns:repeat(9,1fr);
+    grid-template-rows:repeat(9,1fr);
+    gap:1px;
+    background:var(--ink);
+}
+
+.cell {
+    position:relative;
+    min-width:0;
+    min-height:0;
+    background:var(--paper);
+    cursor:pointer;
+    user-select:none;
+    outline:none;
+    touch-action:manipulation;
+}
+
+.cell.related { background:var(--related); }
+.cell.selected { background:var(--selected); }
+.cell.given,.cell.given.related { background:var(--given-background); }
+.cell.given.selected { background:var(--given-selected); }
+
+.cell:nth-child(3n):not(:nth-child(9n)) {
+    border-right:2px solid var(--ink);
+}
+
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54) {
+    border-bottom:2px solid var(--ink);
+}
+
+.value {
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:clamp(1.45rem,7vw,2.55rem);
+    line-height:1;
+}
+
+.cell.given .value { color:var(--given-text);font-weight:700; }
+.cell.given.selected .value { color:var(--given-selected-text); }
+.cell.user .value { color:var(--user);font-weight:normal; }
+.cell.conflict .value { color:var(--conflict); }
+.cell.given.selected.conflict .value { color:var(--conflict); }
+
+.candidates {
+    position:absolute;
+    inset:5%;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,1fr);
+    pointer-events:none;
+}
+
+.candidate {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:Arial,Helvetica,sans-serif;
+    color:var(--candidate);
+    font-size:clamp(.45rem,2.1vw,.72rem);
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+}
+
+.candidate.conflict { color:var(--conflict);font-weight:700; }
+
+.controls {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    border-top:1px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    margin-top:15px;
+}
+
+.control-button {
+    min-height:47px;
+    border:0;
+    border-right:1px solid var(--rule);
+    background:transparent;
+    color:var(--ink);
+    cursor:pointer;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:.68rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+}
+
+.control-button:last-child { border-right:0; }
+
+.control-button:hover,
+.control-button.active {
+    background:var(--ink);
+    color:#fff;
+}
+
+.control-button:focus-visible,
+.difficulty-button:focus-visible,
+#startButton:focus-visible,
+#continueButton:focus-visible,
+.completion-actions button:focus-visible,
+.number-key:focus-visible {
+    outline:2px solid var(--user);
+    outline-offset:-2px;
+}
+
+/* Virtual keypad: hidden on desktop */
+.number-pad {
+    display:none;
+}
+
+.footer {
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    padding-top:9px;
+    font-family:Arial,Helvetica,sans-serif;
+    color:var(--muted);
+    font-size:.61rem;
+    line-height:1.4;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+}
+
+.deployment-indicator {
+    margin-top:10px;
+    min-height:1.35em;
+    font-family:Arial,Helvetica,sans-serif;
+    color:var(--muted);
+    font-size:.57rem;
+    line-height:1.35;
+    text-transform:uppercase;
+    letter-spacing:.045em;
+    text-align:center;
+    font-variant-numeric:tabular-nums;
+}
+
+.deployment-indicator.update-pending {
+    color:var(--update);
+    font-weight:700;
+}
+
+.deployment-indicator.error { color:var(--muted); }
+
+.start-screen {
+    position:fixed;
+    inset:0;
+    z-index:10;
+    background:var(--paper);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    padding-top:env(safe-area-inset-top,24px);
+    padding-bottom:env(safe-area-inset-bottom,24px);
+}
+
+.start-content {
+    width:min(100%,430px);
+    text-align:center;
+}
+
+.start-content h2 {
+    margin:0 0 28px;
+    font-size:clamp(3.5rem,17vw,6rem);
+    line-height:.82;
+    font-weight:normal;
+    letter-spacing:-.08em;
+}
+
+.difficulty-picker {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    border-top:1px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    margin-bottom:13px;
+}
+
+.difficulty-button {
+    min-height:48px;
+    border:0;
+    border-right:1px solid var(--rule);
+    background:transparent;
+    color:var(--ink);
+    cursor:pointer;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:.68rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+}
+
+.difficulty-button:last-child { border-right:0; }
+.difficulty-button.active { background:var(--ink);color:white; }
+
+.start-actions {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+}
+
+#startButton,#continueButton {
+    width:100%;
+    min-height:54px;
+    cursor:pointer;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:.72rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+}
+
+#startButton { border:0;background:var(--ink);color:white; }
+#continueButton { background:transparent;color:var(--ink);border:1px solid var(--ink); }
+
+.completion-overlay {
+    position:fixed;
+    inset:0;
+    z-index:20;
+    background:rgba(247,247,245,.95);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+}
+
+.completion {
+    width:min(100%,410px);
+    background:var(--paper);
+    border-top:3px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    padding:25px 22px 22px;
+    text-align:center;
+}
+
+.completion-kicker {
+    margin-bottom:8px;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:.63rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+}
+
+.completion h2 {
+    margin:0 0 9px;
+    font-size:3rem;
+    line-height:.9;
+    font-weight:normal;
+    letter-spacing:-.06em;
+}
+
+.completion p { margin:0 0 23px;font-size:.95rem;color:var(--muted); }
+.completion strong { color:var(--ink);font-variant-numeric:tabular-nums; }
+
+.completion-actions {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    border-top:1px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+}
+
+.completion-actions button {
+    min-height:48px;
+    border:0;
+    border-right:1px solid var(--rule);
+    cursor:pointer;
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:.68rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+}
+
+.completion-actions button:last-child { border-right:0; }
+#newGameButton { background:var(--ink);color:white; }
+#closeCompletionButton { background:transparent;color:var(--ink); }
+
+.hidden { display:none!important; }
+
+/* Compact mobile layout */
+@media (max-width:600px) {
+    html,body {
+        width:100%;
+        height:100%;
+        min-height:100%;
+        overflow:hidden;
+        overscroll-behavior:none;
     }
 
-    * {
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    html,
     body {
-        margin: 0;
-        width: 100%;
-        min-height: 100%;
-        background: var(--paper);
-        color: var(--ink);
-    }
-
-    body {
-        font-family:
-            Georgia,
-            "Times New Roman",
-            Times,
-            serif;
-
-        min-height: 100dvh;
-        display: flex;
-        justify-content: center;
-        padding: 22px 16px;
-    }
-
-    button {
-        font: inherit;
+        min-height:100vh;
+        min-height:100dvh;
+        padding:0;
+        align-items:stretch;
     }
 
     .app {
-        width: min(100%, 640px);
-        display: flex;
-        flex-direction: column;
+        width:100%;
+        height:100vh;
+        height:100dvh;
+        min-height:0;
+        padding:
+            max(6px,env(safe-area-inset-top))
+            max(10px,env(safe-area-inset-right))
+            max(6px,env(safe-area-inset-bottom))
+            max(10px,env(safe-area-inset-left));
+        overflow:hidden;
+        justify-content:space-between;
+        gap:0;
     }
-
-    /* -----------------------------------------------------
-       Masthead
-       ----------------------------------------------------- */
 
     .masthead {
-        border-top: 3px solid var(--ink);
-        border-bottom: 1px solid var(--ink);
-        padding: 9px 0 8px;
-        margin-bottom: 18px;
+        flex:0 0 auto;
+        margin-bottom:5px;
+        padding:5px 0;
     }
 
-    .masthead-inner {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .brand {
-        font-size: clamp(2.2rem, 9vw, 4rem);
-        line-height: .86;
-        font-weight: normal;
-        letter-spacing: -.07em;
-    }
-
-    /* -----------------------------------------------------
-       Game header
-       ----------------------------------------------------- */
+    .brand { font-size:1.8rem; }
 
     .game-heading {
-        border-bottom: 1px solid var(--rule);
-        padding-bottom: 13px;
-        margin-bottom: 14px;
-    }
-
-    .heading-row {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 18px;
+        flex:0 0 auto;
+        margin-bottom:6px;
+        padding-bottom:6px;
     }
 
     .game-meta {
-        display: flex;
-        align-items: baseline;
-        gap: 16px;
-        margin-left: auto;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        font-size: .7rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        white-space: nowrap;
+        gap:12px;
+        font-size:.62rem;
     }
-
-    #difficultyDisplay {
-        font-weight: 700;
-    }
-
-    #timer {
-        color: var(--muted);
-        font-variant-numeric: tabular-nums;
-    }
-
-    /* -----------------------------------------------------
-       Sudoku board
-       ----------------------------------------------------- */
 
     .board-wrap {
-        width: 100%;
-        aspect-ratio: 1;
-        border: 1.5px solid var(--heavy-rule);
-        background: var(--heavy-rule);
+        width:min(100%,calc(100dvh - 265px));
+        max-width:100%;
+        margin:0 auto;
+        flex:0 1 auto;
+        min-height:0;
+        aspect-ratio:1;
     }
 
-    #board {
-        width: 100%;
-        height: 100%;
-        display: grid;
-        grid-template-columns: repeat(9, 1fr);
-        grid-template-rows: repeat(9, 1fr);
-        gap: 1px;
-        background: var(--heavy-rule);
-    }
+    #board { width:100%;height:100%; }
 
-    .cell {
-        position: relative;
-        min-width: 0;
-        min-height: 0;
-        background: var(--paper);
-        cursor: pointer;
-        user-select: none;
-        outline: none;
-    }
-
-    .cell.related {
-        background: var(--related);
-    }
-
-    .cell.selected {
-        background: var(--selected);
-    }
-
-    /*
-     * Pre-filled cells remain light grey.
-     */
-    .cell.given,
-    .cell.given.related {
-        background: var(--given-background);
-    }
-
-    /*
-     * Selected pre-filled cell is darker blue.
-     */
-    .cell.given.selected {
-        background: var(--given-selected);
-    }
-
-    .cell:nth-child(3n):not(:nth-child(9n)) {
-        border-right: 2px solid var(--heavy-rule);
-    }
-
-    .cell:nth-child(n + 19):nth-child(-n + 27),
-    .cell:nth-child(n + 46):nth-child(-n + 54) {
-        border-bottom: 2px solid var(--heavy-rule);
-    }
-
-    .value {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        font-family:
-            Georgia,
-            "Times New Roman",
-            Times,
-            serif;
-
-        font-size: clamp(1.45rem, 7vw, 2.55rem);
-        line-height: 1;
-    }
-
-    .cell.given .value {
-        color: var(--given-text);
-        font-weight: 700;
-    }
-
-    .cell.given.selected .value {
-        color: var(--given-selected-text);
-    }
-
-    .cell.user .value {
-        color: var(--user);
-        font-weight: normal;
-    }
-
-    .cell.conflict .value {
-        color: var(--conflict);
-    }
-
-    .cell.given.selected.conflict .value {
-        color: var(--conflict);
-    }
-
-    /* -----------------------------------------------------
-       Pencil marks
-       ----------------------------------------------------- */
-
-    .candidates {
-        position: absolute;
-        inset: 5%;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        pointer-events: none;
-    }
-
-    .candidate {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        color: var(--candidate);
-        font-size: clamp(.45rem, 2.1vw, .72rem);
-        line-height: 1;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .candidate.conflict {
-        color: var(--conflict);
-        font-weight: 700;
-    }
-
-    /* -----------------------------------------------------
-       Controls
-       ----------------------------------------------------- */
+    .value { font-size:clamp(1.1rem,7.4vw,2rem); }
+    .candidate { font-size:clamp(.38rem,2.5vw,.68rem); }
 
     .controls {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-
-        border-top: 1px solid var(--ink);
-        border-bottom: 1px solid var(--ink);
-
-        margin-top: 15px;
+        flex:0 0 auto;
+        grid-template-columns:1fr 1fr;
+        margin-top:7px;
     }
 
     .control-button {
-        min-height: 47px;
-
-        border: 0;
-        border-right: 1px solid var(--rule);
-
-        background: transparent;
-        color: var(--ink);
-
-        cursor: pointer;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        font-size: .68rem;
-        font-weight: 700;
-
-        text-transform: uppercase;
-        letter-spacing: .06em;
+        min-height:37px;
+        font-size:.59rem;
     }
 
-    .control-button:last-child {
-        border-right: 0;
+    .control-button:nth-child(3),
+    .control-button:nth-child(4) {
+        border-top:1px solid var(--rule);
     }
 
-    .control-button:hover,
-    .control-button.active {
-        background: var(--ink);
-        color: #fff;
+    .control-button:nth-child(2),
+    .control-button:nth-child(4) {
+        border-right:0;
     }
 
-    .control-button:focus-visible,
-    .difficulty-button:focus-visible,
-    #startButton:focus-visible,
-    #continueButton:focus-visible,
-    .completion-actions button:focus-visible {
-        outline: 2px solid var(--user);
-        outline-offset: -2px;
+    /* Touch keypad */
+    .number-pad {
+        display:grid;
+        flex:0 0 auto;
+        grid-template-columns:repeat(9,minmax(0,1fr));
+        gap:4px;
+        margin-top:7px;
     }
 
-    /* -----------------------------------------------------
-       Footer
-       ----------------------------------------------------- */
-
-    .footer {
-        display: flex;
-        justify-content: space-between;
-        gap: 15px;
-        padding-top: 9px;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        color: var(--muted);
-        font-size: .61rem;
-        line-height: 1.4;
-
-        text-transform: uppercase;
-        letter-spacing: .05em;
+    .number-key {
+        min-width:0;
+        min-height:clamp(37px,6.5vh,54px);
+        border:1px solid var(--rule);
+        background:var(--paper-alt);
+        color:var(--ink);
+        font-family:Arial,Helvetica,sans-serif;
+        font-size:clamp(1rem,5vw,1.4rem);
+        font-weight:700;
+        cursor:pointer;
+        border-radius:2px;
+        padding:0;
     }
 
-    /* -----------------------------------------------------
-       GitHub deployment indicator
-       ----------------------------------------------------- */
-
-    .deployment-indicator {
-        margin-top: 10px;
-
-        min-height: 1.35em;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        color: var(--muted);
-
-        font-size: .57rem;
-        line-height: 1.35;
-
-        text-transform: uppercase;
-        letter-spacing: .045em;
-
-        text-align: center;
-
-        font-variant-numeric: tabular-nums;
+    .number-key:active,
+    .number-key.active {
+        background:var(--ink);
+        color:white;
     }
 
-    .deployment-indicator.update-pending {
-        color: var(--update);
-        font-weight: 700;
+    .number-key.erase {
+        font-size:.72rem;
+        letter-spacing:-.04em;
     }
 
-    .deployment-indicator.error {
-        color: var(--muted);
+    .number-key.pencil {
+        font-size:.62rem;
+        text-transform:uppercase;
+        letter-spacing:-.04em;
     }
 
-    .deployment-indicator a {
-        color: inherit;
-        text-decoration: none;
-    }
-
-    .deployment-indicator a:hover {
-        text-decoration: underline;
-    }
-
-    /* -----------------------------------------------------
-       Start screen
-       ----------------------------------------------------- */
+    .footer { display:none; }
+    .deployment-indicator { display:none; }
 
     .start-screen {
-        position: fixed;
-        inset: 0;
-        z-index: 10;
+        padding:
+            max(24px,env(safe-area-inset-top))
+            20px
+            max(24px,env(safe-area-inset-bottom));
+    }
+}
 
-        background: var(--paper);
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        padding: 24px;
+/* Short landscape screens */
+@media (max-width:600px) and (orientation:landscape) {
+    .app {
+        display:grid;
+        grid-template-columns:minmax(0,1fr) minmax(180px,34%);
+        grid-template-rows:auto auto minmax(0,1fr) auto;
+        column-gap:10px;
+        row-gap:4px;
     }
 
-    .start-content {
-        width: min(100%, 430px);
-        text-align: center;
+    .masthead {
+        grid-column:1;
+        grid-row:1;
     }
 
-    .start-content h2 {
-        margin: 0 0 28px;
-
-        font-size: clamp(3.5rem, 17vw, 6rem);
-        line-height: .82;
-        font-weight: normal;
-        letter-spacing: -.08em;
+    .game-heading {
+        grid-column:1;
+        grid-row:2;
     }
 
-    .difficulty-picker {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-
-        border-top: 1px solid var(--ink);
-        border-bottom: 1px solid var(--ink);
-
-        margin-bottom: 13px;
+    .board-wrap {
+        grid-column:1;
+        grid-row:3 / 5;
+        width:auto;
+        height:100%;
+        max-width:calc(100dvh - 25px);
+        max-height:100%;
+        justify-self:center;
+        align-self:center;
     }
 
-    .difficulty-button {
-        min-height: 48px;
-
-        border: 0;
-        border-right: 1px solid var(--rule);
-
-        background: transparent;
-        color: var(--ink);
-
-        cursor: pointer;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        font-size: .68rem;
-        font-weight: 700;
-
-        text-transform: uppercase;
-        letter-spacing: .08em;
+    .controls {
+        grid-column:2;
+        grid-row:1;
+        align-self:end;
+        margin-top:0;
     }
 
-    .difficulty-button:last-child {
-        border-right: 0;
+    .number-pad {
+        grid-column:2;
+        grid-row:2 / 5;
+        align-self:center;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:5px;
+        margin:0;
     }
 
-    .difficulty-button.active {
-        background: var(--ink);
-        color: white;
-    }
-
-    .start-actions {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-
-    #startButton,
-    #continueButton {
-        width: 100%;
-        min-height: 54px;
-
-        cursor: pointer;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        font-size: .72rem;
-        font-weight: 700;
-
-        text-transform: uppercase;
-        letter-spacing: .1em;
-    }
-
-    #startButton {
-        border: 0;
-        background: var(--ink);
-        color: white;
-    }
-
-    #startButton:hover {
-        background: #333;
-    }
-
-    #continueButton {
-        background: transparent;
-        color: var(--ink);
-        border: 1px solid var(--ink);
-    }
-
-    #continueButton:hover {
-        background: var(--ink);
-        color: white;
-    }
-
-    /* -----------------------------------------------------
-       Completion modal
-       ----------------------------------------------------- */
-
-    .completion-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 20;
-
-        background: rgba(247, 247, 245, .95);
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        padding: 24px;
-    }
-
-    .completion {
-        width: min(100%, 410px);
-
-        background: var(--paper);
-
-        border-top: 3px solid var(--ink);
-        border-bottom: 1px solid var(--ink);
-
-        padding: 25px 22px 22px;
-        text-align: center;
-    }
-
-    .completion-kicker {
-        margin-bottom: 8px;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        font-size: .63rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .12em;
-    }
-
-    .completion h2 {
-        margin: 0 0 9px;
-
-        font-size: 3rem;
-        line-height: .9;
-        font-weight: normal;
-        letter-spacing: -.06em;
-    }
-
-    .completion p {
-        margin: 0 0 23px;
-        font-size: .95rem;
-        color: var(--muted);
-    }
-
-    .completion strong {
-        color: var(--ink);
-        font-variant-numeric: tabular-nums;
-    }
-
-    .completion-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-
-        border-top: 1px solid var(--ink);
-        border-bottom: 1px solid var(--ink);
-    }
-
-    .completion-actions button {
-        min-height: 48px;
-
-        border: 0;
-        border-right: 1px solid var(--rule);
-
-        cursor: pointer;
-
-        font-family:
-            Arial,
-            Helvetica,
-            sans-serif;
-
-        font-size: .68rem;
-        font-weight: 700;
-
-        text-transform: uppercase;
-        letter-spacing: .07em;
-    }
-
-    .completion-actions button:last-child {
-        border-right: 0;
-    }
-
-    #newGameButton {
-        background: var(--ink);
-        color: white;
-    }
-
-    #closeCompletionButton {
-        background: transparent;
-        color: var(--ink);
-    }
-
-    .hidden {
-        display: none !important;
-    }
-
-    /* -----------------------------------------------------
-       Mobile
-       ----------------------------------------------------- */
-
-    @media (max-width: 480px) {
-        body {
-            padding: 12px 10px;
-            align-items: flex-start;
-        }
-
-        .app {
-            width: 100%;
-        }
-
-        .masthead {
-            margin-bottom: 12px;
-        }
-
-        .brand {
-            font-size: 2.45rem;
-        }
-
-        .game-heading {
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-
-        .heading-row {
-            align-items: center;
-        }
-
-        .game-meta {
-            gap: 9px;
-            font-size: .59rem;
-        }
-
-        .controls {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .control-button:nth-child(3),
-        .control-button:nth-child(4) {
-            border-top: 1px solid var(--rule);
-        }
-
-        .control-button:nth-child(2),
-        .control-button:nth-child(4) {
-            border-right: 0;
-        }
-
-        .footer {
-            font-size: .55rem;
-        }
-
-        .deployment-indicator {
-            font-size: .5rem;
-        }
-    }
-
-    @media (max-height: 700px) and (min-width: 481px) {
-        body {
-            padding-top: 10px;
-            padding-bottom: 10px;
-        }
-
-        .masthead {
-            margin-bottom: 10px;
-        }
-
-        .game-heading {
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-        }
-
-        .controls {
-            margin-top: 9px;
-        }
-    }
+    .number-key { min-height:clamp(34px,10dvh,54px); }
+}
 </style>
-
 </head>
 
 <body>
 
-<!-- =======================================================
-     START SCREEN
-     ======================================================== -->
-
 <div id="startScreen" class="start-screen">
     <div class="start-content">
+        <h2>Sudoku</h2>
 
-    <h2>Sudoku</h2>
-
-    <div class="difficulty-picker">
-
-        <button
-            class="difficulty-button active"
-            data-difficulty="easy">
-            Easy
-        </button>
-
-        <button
-            class="difficulty-button"
-            data-difficulty="medium">
-            Medium
-        </button>
-
-        <button
-            class="difficulty-button"
-            data-difficulty="hard">
-            Hard
-        </button>
-
-    </div>
-
-    <div class="start-actions">
-
-        <button id="startButton">
-            Start Game
-        </button>
-
-        <button
-            id="continueButton"
-            class="hidden">
-            Continue
-        </button>
-
-    </div>
-
-    <div
-        id="startDeploymentIndicator"
-        class="deployment-indicator"
-        aria-live="polite">
-        Checking deployment…
-    </div>
-
-</div>
-
-</div>
-
-<!-- =======================================================
-     GAME
-     ======================================================== -->
-
-<main class="app">
-
-<header class="masthead">
-    <div class="masthead-inner">
-        <div class="brand">Sudoku</div>
-    </div>
-</header>
-
-<section class="game-heading">
-
-    <div class="heading-row">
-
-        <div class="game-meta">
-
-            <span id="difficultyDisplay">
-                EASY
-            </span>
-
-            <span id="timer">
-                00:00
-            </span>
-
+        <div class="difficulty-picker">
+            <button class="difficulty-button active" data-difficulty="easy">Easy</button>
+            <button class="difficulty-button" data-difficulty="medium">Medium</button>
+            <button class="difficulty-button" data-difficulty="hard">Hard</button>
         </div>
 
+        <div class="start-actions">
+            <button id="startButton">Start Game</button>
+            <button id="continueButton" class="hidden">Continue</button>
+        </div>
+
+        <div id="startDeploymentIndicator" class="deployment-indicator" aria-live="polite">Checking deployment…</div>
     </div>
-
-</section>
-
-
-<section
-    class="board-wrap"
-    aria-label="Sudoku board">
-
-    <div
-        id="board"
-        role="grid"
-        aria-label="Sudoku puzzle">
-    </div>
-
-</section>
-
-
-<section class="controls">
-
-    <button
-        id="pencilButton"
-        class="control-button">
-        Pencil: OFF
-    </button>
-
-    <button
-        id="autoCandidateButton"
-        class="control-button">
-        Auto Candidates: OFF
-    </button>
-
-    <button
-        id="resetButton"
-        class="control-button">
-        Reset
-    </button>
-
-    <button
-        id="newGameControl"
-        class="control-button">
-        New Game
-    </button>
-
-</section>
-
-
-<footer class="footer">
-
-    <span>
-        1–9 Enter Number
-    </span>
-
-    <span>
-        Space Pencil
-    </span>
-
-    <span>
-        ← ↑ ↓ → Navigate
-    </span>
-
-</footer>
-
-
-<div
-    id="gameDeploymentIndicator"
-    class="deployment-indicator"
-    aria-live="polite">
-    Checking deployment…
 </div>
 
+<main class="app">
+    <header class="masthead">
+        <div class="masthead-inner"><div class="brand">Sudoku</div></div>
+    </header>
+
+    <section class="game-heading">
+        <div class="heading-row">
+            <div class="game-meta">
+                <span id="difficultyDisplay">EASY</span>
+                <span id="timer">00:00</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="board-wrap" aria-label="Sudoku board">
+        <div id="board" role="grid" aria-label="Sudoku puzzle"></div>
+    </section>
+
+    <section class="controls">
+        <button id="pencilButton" class="control-button">Pencil: OFF</button>
+        <button id="autoCandidateButton" class="control-button">Auto Candidates: OFF</button>
+        <button id="resetButton" class="control-button">Reset</button>
+        <button id="newGameControl" class="control-button">New Game</button>
+    </section>
+
+    <section id="numberPad" class="number-pad" aria-label="Number pad">
+        <button class="number-key" data-number="1">1</button>
+        <button class="number-key" data-number="2">2</button>
+        <button class="number-key" data-number="3">3</button>
+        <button class="number-key" data-number="4">4</button>
+        <button class="number-key" data-number="5">5</button>
+        <button class="number-key" data-number="6">6</button>
+        <button class="number-key" data-number="7">7</button>
+        <button class="number-key" data-number="8">8</button>
+        <button class="number-key" data-number="9">9</button>
+        <button class="number-key erase" data-action="erase" aria-label="Erase selected cell">⌫</button>
+        <button class="number-key pencil" data-action="pencil" aria-label="Toggle pencil mode">Pencil</button>
+        <button class="number-key" data-action="move" aria-label="Move to next cell">→</button>
+    </section>
+
+    <footer class="footer">
+        <span>1–9 Enter Number</span>
+        <span>Space Pencil</span>
+        <span>← ↑ ↓ → Navigate</span>
+    </footer>
+
+    <div id="gameDeploymentIndicator" class="deployment-indicator" aria-live="polite">Checking deployment…</div>
 </main>
 
-<!-- =======================================================
-     COMPLETION
-     ======================================================== -->
-
-<div
-    id="completionOverlay"
-    class="completion-overlay hidden">
-
-<div class="completion">
-
-    <div class="completion-kicker">
-        Puzzle Solved
+<div id="completionOverlay" class="completion-overlay hidden">
+    <div class="completion">
+        <div class="completion-kicker">Puzzle Solved</div>
+        <h2>Complete</h2>
+        <p>Solved in <strong id="completionTime">00:00</strong>.</p>
+        <div class="completion-actions">
+            <button id="newGameButton">New Game</button>
+            <button id="closeCompletionButton">Close</button>
+        </div>
     </div>
-
-    <h2>Complete</h2>
-
-    <p>
-        Solved in
-        <strong id="completionTime">
-            00:00
-        </strong>.
-    </p>
-
-    <div class="completion-actions">
-
-        <button id="newGameButton">
-            New Game
-        </button>
-
-        <button id="closeCompletionButton">
-            Close
-        </button>
-
-    </div>
-
-</div>
-
 </div>
 
 <script>
 "use strict";
 
-
-/* =========================================================
-   GitHub configuration
-   ========================================================= */
-
-const GITHUB_OWNER =
-    "BoredGuy";
-
-const GITHUB_REPOSITORY =
-    "sudoku";
-
-const GITHUB_BRANCH =
-    "main";
-
-const GITHUB_API_BASE =
-    "https://api.github.com";
-
+/* GitHub configuration */
+const GITHUB_OWNER = "BoredGuy";
+const GITHUB_REPOSITORY = "sudoku";
+const GITHUB_BRANCH = "main";
 const GITHUB_REPOSITORY_API =
-    `${GITHUB_API_BASE}/repos/` +
-    `${GITHUB_OWNER}/${GITHUB_REPOSITORY}`;
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPOSITORY}`;
 
+const GITHUB_REQUEST_TIMEOUT_MS = 10000;
 
-/*
- * Do not send custom GitHub API headers from the browser.
- *
- * The public GitHub REST API supports CORS, but adding
- * non-safelisted request headers causes a CORS preflight.
- *
- * These public GET requests do not require authentication.
- */
-const GITHUB_REQUEST_OPTIONS = {
-    method: "GET",
-    cache: "no-store"
-};
-
-
-
-
-
-/* =========================================================
-   Constants
-   ========================================================= */
-
+/* Constants */
 const SIZE = 9;
 const BOX = 3;
-
-const STORAGE_KEY =
-    "sudoku-active-game-v1";
-
+const STORAGE_KEY = "sudoku-active-game-v1";
 const SAVE_INTERVAL_SECONDS = 5;
 
-
-/* =========================================================
-   State
-   ========================================================= */
-
+/* State */
 const state = {
     solution: [],
     puzzle: [],
     board: [],
     candidates: [],
-
     selected: 0,
-
     difficulty: "easy",
-
     pencilMode: false,
     autoCandidates: false,
-
     running: false,
     completed: false,
-
     elapsedSeconds: 0,
     timerInterval: null,
-
     secondsSinceSave: 0
 };
 
-
-/* =========================================================
-   Difficulty
-   ========================================================= */
-
 const difficultyConfig = {
-    easy: {
-        clues: 42
-    },
-
-    medium: {
-        clues: 34
-    },
-
-    hard: {
-        clues: 28
-    }
+    easy:{clues:42},
+    medium:{clues:34},
+    hard:{clues:28}
 };
 
+/* DOM */
+const boardElement = document.getElementById("board");
+const timerElement = document.getElementById("timer");
+const difficultyDisplay = document.getElementById("difficultyDisplay");
+const startScreen = document.getElementById("startScreen");
+const startButton = document.getElementById("startButton");
+const continueButton = document.getElementById("continueButton");
+const startDeploymentIndicator = document.getElementById("startDeploymentIndicator");
+const gameDeploymentIndicator = document.getElementById("gameDeploymentIndicator");
+const pencilButton = document.getElementById("pencilButton");
+const autoCandidateButton = document.getElementById("autoCandidateButton");
+const resetButton = document.getElementById("resetButton");
+const newGameControl = document.getElementById("newGameControl");
+const completionOverlay = document.getElementById("completionOverlay");
+const completionTime = document.getElementById("completionTime");
+const newGameButton = document.getElementById("newGameButton");
+const closeCompletionButton = document.getElementById("closeCompletionButton");
+const difficultyButtons = document.querySelectorAll(".difficulty-button");
+const numberPad = document.getElementById("numberPad");
 
-/* =========================================================
-   DOM
-   ========================================================= */
+/* GitHub deployment */
+function formatRelativeTime(dateString) {
+    const timestamp = Date.parse(dateString);
+    if (Number.isNaN(timestamp)) return "";
 
-const boardElement =
-    document.getElementById(
-        "board"
-    );
+    const seconds = Math.max(0, Math.floor((Date.now()-timestamp)/1000));
+    if (seconds < 60) return "just now";
 
-const timerElement =
-    document.getElementById(
-        "timer"
-    );
+    const minutes = Math.floor(seconds/60);
+    if (minutes < 60) return `${minutes} min${minutes===1?"":"s"} ago`;
 
-const difficultyDisplay =
-    document.getElementById(
-        "difficultyDisplay"
-    );
+    const hours = Math.floor(minutes/60);
+    if (hours < 24) return `${hours} hr${hours===1?"":"s"} ago`;
 
-const startScreen =
-    document.getElementById(
-        "startScreen"
-    );
+    const days = Math.floor(hours/24);
+    if (days < 7) return `${days} day${days===1?"":"s"} ago`;
 
-const startButton =
-    document.getElementById(
-        "startButton"
-    );
-
-const continueButton =
-    document.getElementById(
-        "continueButton"
-    );
-
-const startDeploymentIndicator =
-    document.getElementById(
-        "startDeploymentIndicator"
-    );
-
-const gameDeploymentIndicator =
-    document.getElementById(
-        "gameDeploymentIndicator"
-    );
-
-const pencilButton =
-    document.getElementById(
-        "pencilButton"
-    );
-
-const autoCandidateButton =
-    document.getElementById(
-        "autoCandidateButton"
-    );
-
-const resetButton =
-    document.getElementById(
-        "resetButton"
-    );
-
-const newGameControl =
-    document.getElementById(
-        "newGameControl"
-    );
-
-const completionOverlay =
-    document.getElementById(
-        "completionOverlay"
-    );
-
-const completionTime =
-    document.getElementById(
-        "completionTime"
-    );
-
-const newGameButton =
-    document.getElementById(
-        "newGameButton"
-    );
-
-const closeCompletionButton =
-    document.getElementById(
-        "closeCompletionButton"
-    );
-
-const difficultyButtons =
-    document.querySelectorAll(
-        ".difficulty-button"
-    );
-
-
-/* =========================================================
-   GitHub deployment information
-   ========================================================= */
-
-/*
- * GitHub exposes:
- *
- * GET /repos/{owner}/{repo}/pages/builds/latest
- *
- * The response contains the commit SHA associated with
- * the latest GitHub Pages build.
- *
- * GitHub also exposes:
- *
- * GET /repos/{owner}/{repo}/commits/{ref}
- *
- * This lets us compare the latest main-branch commit
- * with the commit used by the latest Pages build.
- */
-
-
-/*
- * Convert a date into a compact relative time.
- */
-function formatRelativeTime(
-    dateString
-) {
-    const timestamp =
-        Date.parse(dateString);
-
-    if (
-        Number.isNaN(timestamp)
-    ) {
-        return "";
-    }
-
-    const seconds =
-        Math.max(
-            0,
-            Math.floor(
-                (
-                    Date.now() -
-                    timestamp
-                ) / 1000
-            )
-        );
-
-    if (seconds < 60) {
-        return "just now";
-    }
-
-    const minutes =
-        Math.floor(
-            seconds / 60
-        );
-
-    if (minutes < 60) {
-        return (
-            minutes +
-            (minutes === 1
-                ? " min ago"
-                : " mins ago")
-        );
-    }
-
-    const hours =
-        Math.floor(
-            minutes / 60
-        );
-
-    if (hours < 24) {
-        return (
-            hours +
-            (hours === 1
-                ? " hr ago"
-                : " hrs ago")
-        );
-    }
-
-    const days =
-        Math.floor(
-            hours / 24
-        );
-
-    if (days < 7) {
-        return (
-            days +
-            (days === 1
-                ? " day ago"
-                : " days ago")
-        );
-    }
-
-    return new Intl.DateTimeFormat(
-        undefined,
-        {
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-        }
-    ).format(
-        new Date(timestamp)
-    );
+    return new Intl.DateTimeFormat(undefined,{year:"numeric",month:"short",day:"numeric"}).format(new Date(timestamp));
 }
 
-
-/*
- * Return the short 7-character SHA.
- */
 function shortSha(sha) {
-    if (
-        typeof sha !== "string"
-    ) {
-        return "";
-    }
-
-    return sha.slice(0, 7);
+    return typeof sha==="string" ? sha.slice(0,7) : "";
 }
 
-
-/*
- * Update both deployment indicators.
- */
-function setDeploymentIndicator(
-    text,
-    stateClass = ""
-) {
-    const indicators = [
-        startDeploymentIndicator,
-        gameDeploymentIndicator
-    ];
-
-    indicators.forEach(
-        indicator => {
-            if (!indicator) {
-                return;
-            }
-
-            indicator.textContent =
-                text;
-
-            indicator.classList.remove(
-                "update-pending",
-                "error"
-            );
-
-            if (stateClass) {
-                indicator.classList.add(
-                    stateClass
-                );
-            }
-        }
-    );
+function setDeploymentIndicator(text,stateClass="") {
+    [startDeploymentIndicator,gameDeploymentIndicator].forEach(el=>{
+        el.textContent=text;
+        el.classList.remove("update-pending","error");
+        if(stateClass) el.classList.add(stateClass);
+    });
 }
 
-
-/* =========================================================
-   GitHub deployment information
-   ========================================================= */
-
-/* =========================================================
-   GitHub deployment information
-   ========================================================= */
-
-/*
- * GitHub API request timeout.
- *
- * This prevents the deployment indicator from remaining
- * permanently on "Checking deployment…" if the browser,
- * GitHub, or an extension blocks the request.
- */
-const GITHUB_REQUEST_TIMEOUT_MS =
-    10000;
-
-
-/*
- * Fetch JSON from a GitHub endpoint.
- *
- * A cache-busting query parameter ensures that a fresh
- * response is requested when the page is reloaded.
- */
 async function fetchGitHubJson(endpoint) {
-
-    const separator =
-        endpoint.includes("?")
-            ? "&"
-            : "?";
-
-    const url =
-        endpoint +
-        separator +
-        "cacheBust=" +
-        Date.now();
-
-
-    const controller =
-        new AbortController();
-
-
-    const timeout =
-        setTimeout(
-            () => {
-                controller.abort();
-            },
-            GITHUB_REQUEST_TIMEOUT_MS
-        );
-
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(),GITHUB_REQUEST_TIMEOUT_MS);
 
     try {
+        const response = await fetch(endpoint+(endpoint.includes("?")?"&":"?")+"cacheBust="+Date.now(),{
+            method:"GET",
+            cache:"no-store",
+            signal:controller.signal
+        });
 
-        const response =
-            await fetch(
-                url,
-                {
-                    method: "GET",
-                    cache: "no-store",
-                    signal: controller.signal
-                }
-            );
-
-
-        if (!response.ok) {
-
-            /*
-             * Include rate-limit information when GitHub
-             * provides it.
-             */
-            const remaining =
-                response.headers.get(
-                    "x-ratelimit-remaining"
-                );
-
-            const reset =
-                response.headers.get(
-                    "x-ratelimit-reset"
-                );
-
-
-            let message =
-                `HTTP ${response.status}`;
-
-
-            if (
-                response.status === 403 &&
-                remaining === "0"
-            ) {
-
-                message +=
-                    " · API rate limit reached";
-
-
-                if (reset) {
-
-                    const resetDate =
-                        new Date(
-                            Number(reset) * 1000
-                        );
-
-                    message +=
-                        " · resets " +
-                        resetDate.toLocaleTimeString();
-                }
-            }
-
-
-            throw new Error(
-                message
-            );
-        }
-
-
+        if(!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json();
-
-    } catch (error) {
-
-        if (
-            error &&
-            error.name === "AbortError"
-        ) {
-            throw new Error(
-                "Request timed out"
-            );
-        }
-
+    } catch(error) {
+        if(error.name==="AbortError") throw new Error("Request timed out");
         throw error;
-
     } finally {
-
-        clearTimeout(
-            timeout
-        );
+        clearTimeout(timeout);
     }
 }
 
-
-/*
- * Fetch the latest GitHub Pages build.
- */
-async function getLatestPagesBuild() {
-
-    return fetchGitHubJson(
-        `${GITHUB_REPOSITORY_API}` +
-        `/pages/builds/latest`
-    );
-}
-
-
-/*
- * Fetch the latest commit on main.
- */
-async function getLatestMainCommit() {
-
-    return fetchGitHubJson(
-        `${GITHUB_REPOSITORY_API}` +
-        `/commits/${encodeURIComponent(
-            GITHUB_BRANCH
-        )}`
-    );
-}
-
-
-/*
- * Check deployment information ONCE.
- *
- * This function is called when the page loads.
- * It is deliberately not polled.
- */
 async function checkDeploymentStatus() {
-
-    setDeploymentIndicator(
-        "Checking deployment…"
-    );
-
-
-    let pagesBuild;
-    let mainCommit;
-
-
-    /*
-     * -----------------------------------------------------
-     * Get Pages deployment
-     * -----------------------------------------------------
-     */
+    setDeploymentIndicator("Checking deployment…");
 
     try {
+        const pages = await fetchGitHubJson(`${GITHUB_REPOSITORY_API}/pages/builds/latest`);
+        const main = await fetchGitHubJson(`${GITHUB_REPOSITORY_API}/commits/${encodeURIComponent(GITHUB_BRANCH)}`);
 
-        pagesBuild =
-            await getLatestPagesBuild();
+        const deployedSha = pages.commit;
+        const latestSha = main.sha;
+        const status = pages.status||"";
+        const deployedTime = formatRelativeTime(pages.updated_at||pages.created_at||"");
 
-    } catch (error) {
+        if(!deployedSha||!latestSha) throw new Error("Deployment data unavailable");
 
-        const message =
-            error &&
-            error.message
-                ? error.message
-                : "Unknown error";
-
-
-        setDeploymentIndicator(
-            "DEPLOYMENT CHECK FAILED · " +
-            message,
-            "error"
-        );
-
-
-        console.error(
-            "GitHub Pages deployment check failed:",
-            error
-        );
-
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Get latest main commit
-     * -----------------------------------------------------
-     */
-
-    try {
-
-        mainCommit =
-            await getLatestMainCommit();
-
-    } catch (error) {
-
-        const message =
-            error &&
-            error.message
-                ? error.message
-                : "Unknown error";
-
-
-        setDeploymentIndicator(
-            "COMMIT CHECK FAILED · " +
-            message,
-            "error"
-        );
-
-
-        console.error(
-            "GitHub main commit check failed:",
-            error
-        );
-
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Extract deployment information
-     * -----------------------------------------------------
-     */
-
-    const deployedSha =
-        pagesBuild &&
-        pagesBuild.commit;
-
-
-    const latestSha =
-        mainCommit &&
-        mainCommit.sha;
-
-
-    const deploymentStatus =
-        (
-            pagesBuild &&
-            pagesBuild.status
-        ) || "";
-
-
-    const deployedShortSha =
-        shortSha(
-            deployedSha
-        );
-
-
-    const latestShortSha =
-        shortSha(
-            latestSha
-        );
-
-
-    const deployedTime =
-        formatRelativeTime(
-            (
-                pagesBuild &&
-                (
-                    pagesBuild.updated_at ||
-                    pagesBuild.created_at
-                )
-            ) || ""
-        );
-
-
-    /*
-     * -----------------------------------------------------
-     * Validate response
-     * -----------------------------------------------------
-     */
-
-    if (
-        !deployedSha ||
-        !latestSha
-    ) {
-
-        setDeploymentIndicator(
-            "Deployment data unavailable",
-            "error"
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Pages build is still in progress
-     * -----------------------------------------------------
-     */
-
-    if (
-        deploymentStatus &&
-        deploymentStatus !== "built"
-    ) {
-
-        setDeploymentIndicator(
-            "PAGES " +
-            deploymentStatus.toUpperCase() +
-            " · MAIN " +
-            latestShortSha
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Same commit = deployed
-     * -----------------------------------------------------
-     */
-
-    if (
-        deployedSha === latestSha
-    ) {
-
-        setDeploymentIndicator(
-            "LIVE " +
-            deployedShortSha +
-            (
-                deployedTime
-                    ? " · " +
-                      deployedTime
-                    : ""
-            )
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Different commits
-     * -----------------------------------------------------
-     */
-
-    const mainCommitDate =
-        mainCommit.commit &&
-        mainCommit.commit.author &&
-        mainCommit.commit.author.date;
-
-
-    const deployedDate =
-        pagesBuild.updated_at ||
-        pagesBuild.created_at;
-
-
-    const mainTimestamp =
-        Date.parse(
-            mainCommitDate || ""
-        );
-
-
-    const deployedTimestamp =
-        Date.parse(
-            deployedDate || ""
-        );
-
-
-    /*
-     * -----------------------------------------------------
-     * Repository has a newer commit
-     * -----------------------------------------------------
-     */
-
-    if (
-        !Number.isNaN(mainTimestamp) &&
-        !Number.isNaN(deployedTimestamp) &&
-        mainTimestamp >
-            deployedTimestamp
-    ) {
-
-        setDeploymentIndicator(
-            "LIVE " +
-            deployedShortSha +
-            (
-                deployedTime
-                    ? " · " +
-                      deployedTime
-                    : ""
-            ) +
-            " · UPDATE PENDING " +
-            latestShortSha,
-            "update-pending"
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Different commits without reliable timestamps
-     * -----------------------------------------------------
-     */
-
-    setDeploymentIndicator(
-        "LIVE " +
-        deployedShortSha +
-        (
-            deployedTime
-                ? " · " +
-                  deployedTime
-                : ""
-        ) +
-        " · MAIN " +
-        latestShortSha
-    );
-}
-    const deployedDate =
-            pagesBuild.updated_at ||
-            pagesBuild.created_at;
-
-
-        const mainTimestamp =
-            Date.parse(
-                mainCommitDate || ""
-            );
-
-        const deployedTimestamp =
-            Date.parse(
-                deployedDate || ""
-            );
-
-
-        if (
-            !Number.isNaN(mainTimestamp) &&
-            !Number.isNaN(deployedTimestamp) &&
-            mainTimestamp >
-                deployedTimestamp
-        ) {
-
-            setDeploymentIndicator(
-                "LIVE " +
-                deployedShortSha +
-                (
-                    deployedTime
-                        ? " · " +
-                          deployedTime
-                        : ""
-                ) +
-                " · UPDATE PENDING " +
-                latestShortSha,
-                "update-pending"
-            );
-
+        if(status && status!=="built") {
+            setDeploymentIndicator(`PAGES ${status.toUpperCase()} · MAIN ${shortSha(latestSha)}`);
             return;
         }
 
+        if(deployedSha===latestSha) {
+            setDeploymentIndicator(`LIVE ${shortSha(deployedSha)}${deployedTime?" · "+deployedTime:""}`);
+            return;
+        }
 
-        /*
-         * Different commits, but no reliable timestamp
-         * comparison is available.
-         */
-        setDeploymentIndicator(
-            "LIVE " +
-            deployedShortSha +
-            (
-                deployedTime
-                    ? " · " +
-                      deployedTime
-                    : ""
-            ) +
-            " · MAIN " +
-            latestShortSha
-        );
+        const mainDate=Date.parse(main.commit?.author?.date||"");
+        const deployedDate=Date.parse(pages.updated_at||pages.created_at||"");
 
-    } catch (error) {
+        if(!Number.isNaN(mainDate)&&!Number.isNaN(deployedDate)&&mainDate>deployedDate) {
+            setDeploymentIndicator(`LIVE ${shortSha(deployedSha)}${deployedTime?" · "+deployedTime:""} · UPDATE PENDING ${shortSha(latestSha)}`,"update-pending");
+            return;
+        }
 
-        /*
-         * Never leave the UI stuck on "Checking deployment…".
-         */
-        const message =
-            error &&
-            error.message
-                ? error.message
-                : "Unknown error";
-
-
-        setDeploymentIndicator(
-            "GitHub: " +
-            message,
-            "error"
-        );
-
-
-        console.error(
-            "Sudoku deployment check failed:",
-            error
-        );
-    }
-}
-    } catch (error) {
-
-        /*
-         * Show the actual error rather than hiding it.
-         */
-        const message =
-            error &&
-            error.message
-                ? error.message
-                : "Unknown error";
-
-        setDeploymentIndicator(
-            "GitHub API unavailable · " +
-            message,
-            "error"
-        );
-
-        console.error(
-            "Sudoku deployment check failed:",
-            error
-        );
+        setDeploymentIndicator(`LIVE ${shortSha(deployedSha)}${deployedTime?" · "+deployedTime:""} · MAIN ${shortSha(latestSha)}`);
+    } catch(error) {
+        setDeploymentIndicator(`GITHUB: ${error.message||"Unknown error"}`,"error");
+        console.error("Deployment check failed:",error);
     }
 }
 
-
-/* =========================================================
-   Utilities
-   ========================================================= */
-            "error"
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * We now have both sides.
-     * -----------------------------------------------------
-     */
-
-    const deployedShortSha =
-        shortSha(deployedSha);
-
-    const latestShortSha =
-        shortSha(latestSha);
-
-    const deployedTime =
-        formatRelativeTime(
-            (
-                pagesBuild.updated_at ||
-                pagesBuild.created_at
-            ) || ""
-        );
-
-
-    /*
-     * Pages deployment is still being processed.
-     */
-    if (
-        deploymentStatus &&
-        deploymentStatus !== "built"
-    ) {
-        setDeploymentIndicator(
-            "PAGES " +
-            deploymentStatus.toUpperCase() +
-            " · MAIN " +
-            latestShortSha
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Same SHA
-     * -----------------------------------------------------
-     *
-     * The latest main commit is the same commit associated
-     * with the latest Pages build.
-     */
-
-    if (
-        deployedSha &&
-        latestSha &&
-        deployedSha === latestSha
-    ) {
-        setDeploymentIndicator(
-            "LIVE " +
-            deployedShortSha +
-            (
-                deployedTime
-                    ? " · " +
-                      deployedTime
-                    : ""
-            )
-        );
-
-        return;
-    }
-
-
-    /*
-     * -----------------------------------------------------
-     * Different SHAs
-     * -----------------------------------------------------
-     */
-
-    const mainCommitDate =
-        mainCommit.commit &&
-        mainCommit.commit.author &&
-        mainCommit.commit.author.date;
-
-    const deployedDate =
-        pagesBuild.updated_at ||
-        pagesBuild.created_at;
-
-    const mainTimestamp =
-        Date.parse(
-            mainCommitDate || ""
-        );
-
-    const deployedTimestamp =
-        Date.parse(
-            deployedDate || ""
-        );
-
-
-    /*
-     * The repository commit is newer than the deployed
-     * Pages build.
-     */
-
-    if (
-        !Number.isNaN(mainTimestamp) &&
-        !Number.isNaN(deployedTimestamp) &&
-        mainTimestamp >
-            deployedTimestamp
-    ) {
-        setDeploymentIndicator(
-            "UPDATE PENDING " +
-            latestShortSha +
-            " · LIVE " +
-            deployedShortSha
-        );
-
-        return;
-    }
-
-
-    /*
-     * Different SHAs, but we cannot establish that main
-     * is newer from the available timestamps.
-     */
-
-    setDeploymentIndicator(
-        "LIVE " +
-        deployedShortSha +
-        (
-            deployedTime
-                ? " · " +
-                  deployedTime
-                : ""
-        ) +
-        " · MAIN " +
-        latestShortSha
-    );
-}
-
-/* =========================================================
-   Utilities
-   ========================================================= */
-
+/* Utilities */
 function shuffle(array) {
-    const result =
-        array.slice();
-
-    for (
-        let i = result.length - 1;
-        i > 0;
-        i--
-    ) {
-        const j =
-            Math.floor(
-                Math.random() *
-                (i + 1)
-            );
-
-        [
-            result[i],
-            result[j]
-        ] = [
-            result[j],
-            result[i]
-        ];
+    const result=array.slice();
+    for(let i=result.length-1;i>0;i--) {
+        const j=Math.floor(Math.random()*(i+1));
+        [result[i],result[j]]=[result[j],result[i]];
     }
-
     return result;
 }
 
-
 function createEmptyGrid() {
-    return Array.from(
-        {
-            length: SIZE
-        },
-        () =>
-            Array(SIZE).fill(0)
-    );
+    return Array.from({length:SIZE},()=>Array(SIZE).fill(0));
 }
 
-
-function cloneGrid(grid) {
-    return grid.map(
-        row => row.slice()
-    );
-}
-
+function cloneGrid(grid) { return grid.map(row=>row.slice()); }
 
 function createEmptyCandidates() {
-    return Array.from(
-        {
-            length: SIZE
-        },
-        () =>
-            Array.from(
-                {
-                    length: SIZE
-                },
-                () => []
-            )
+    return Array.from({length:SIZE},()=>Array.from({length:SIZE},()=>[]));
+}
+
+function formatTime(seconds) {
+    return String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");
+}
+
+function indexToRowCol(index) { return [Math.floor(index/SIZE),index%SIZE]; }
+function rowColToIndex(row,col) { return row*SIZE+col; }
+
+/* Persistence */
+function saveGame() {
+    if(!state.running||state.completed||state.puzzle.length!==SIZE) return;
+
+    const saved={
+        version:1,
+        solution:cloneGrid(state.solution),
+        puzzle:cloneGrid(state.puzzle),
+        board:cloneGrid(state.board),
+        candidates:state.candidates.map(row=>row.map(cell=>cell.slice())),
+        selected:state.selected,
+        difficulty:state.difficulty,
+        pencilMode:state.pencilMode,
+        autoCandidates:state.autoCandidates,
+        elapsedSeconds:state.elapsedSeconds
+    };
+
+    try { localStorage.setItem(STORAGE_KEY,JSON.stringify(saved)); } catch(error) {}
+    state.secondsSinceSave=0;
+}
+
+function clearSavedGame() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch(error) {}
+}
+
+function isValidGrid(grid) {
+    return Array.isArray(grid)&&grid.length===9&&grid.every(row=>
+        Array.isArray(row)&&row.length===9&&row.every(v=>Number.isInteger(v)&&v>=0&&v<=9)
     );
 }
 
-
-function formatTime(seconds) {
-    const minutes =
-        Math.floor(
-            seconds / 60
-        );
-
-    const secs =
-        seconds % 60;
-
-    return (
-        String(
-            minutes
-        ).padStart(
-            2,
-            "0"
-        ) +
-        ":" +
-        String(
-            secs
-        ).padStart(
-            2,
-            "0"
+function isValidCandidates(candidates) {
+    return Array.isArray(candidates)&&candidates.length===9&&candidates.every(row=>
+        Array.isArray(row)&&row.length===9&&row.every(cell=>
+            Array.isArray(cell)&&cell.every(v=>Number.isInteger(v)&&v>=1&&v<=9)
         )
     );
 }
 
-
-function indexToRowCol(index) {
-    return [
-        Math.floor(
-            index / SIZE
-        ),
-        index % SIZE
-    ];
-}
-
-
-function rowColToIndex(
-    row,
-    col
-) {
-    return (
-        row * SIZE +
-        col
-    );
-}
-
-
-/* =========================================================
-   Persistence
-   ========================================================= */
-
-function saveGame() {
-    if (
-        !state.running ||
-        state.completed ||
-        state.puzzle.length !== SIZE
-    ) {
-        return;
-    }
-
-    const savedGame = {
-        version: 1,
-
-        solution:
-            cloneGrid(
-                state.solution
-            ),
-
-        puzzle:
-            cloneGrid(
-                state.puzzle
-            ),
-
-        board:
-            cloneGrid(
-                state.board
-            ),
-
-        candidates:
-            state.candidates.map(
-                row =>
-                    row.map(
-                        cell =>
-                            Array.isArray(
-                                cell
-                            )
-                                ? cell.slice()
-                                : []
-                    )
-            ),
-
-        selected:
-            state.selected,
-
-        difficulty:
-            state.difficulty,
-
-        pencilMode:
-            state.pencilMode,
-
-        autoCandidates:
-            state.autoCandidates,
-
-        elapsedSeconds:
-            state.elapsedSeconds
-    };
-
-    try {
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify(
-                savedGame
-            )
-        );
-    } catch (error) {
-        /*
-         * Ignore storage restrictions.
-         */
-    }
-
-    state.secondsSinceSave = 0;
-}
-
-
-function clearSavedGame() {
-    try {
-        localStorage.removeItem(
-            STORAGE_KEY
-        );
-    } catch (error) {
-        /*
-         * Ignore storage errors.
-         */
-    }
-}
-
-
-function isValidGrid(grid) {
-    if (
-        !Array.isArray(grid) ||
-        grid.length !== SIZE
-    ) {
-        return false;
-    }
-
-    return grid.every(
-        row =>
-            Array.isArray(row) &&
-            row.length === SIZE &&
-            row.every(
-                value =>
-                    Number.isInteger(
-                        value
-                    ) &&
-                    value >= 0 &&
-                    value <= 9
-            )
-    );
-}
-
-
-function isValidCandidates(
-    candidates
-) {
-    if (
-        !Array.isArray(
-            candidates
-        ) ||
-        candidates.length !== SIZE
-    ) {
-        return false;
-    }
-
-    return candidates.every(
-        row =>
-            Array.isArray(row) &&
-            row.length === SIZE &&
-            row.every(
-                cell =>
-                    Array.isArray(cell) &&
-                    cell.every(
-                        value =>
-                            Number.isInteger(
-                                value
-                            ) &&
-                            value >= 1 &&
-                            value <= 9
-                    )
-            )
-    );
-}
-
-
 function readSavedGame() {
-    let savedGame =
-        null;
-
+    let saved;
     try {
-        const raw =
-            localStorage.getItem(
-                STORAGE_KEY
-            );
-
-        if (!raw) {
-            return null;
-        }
-
-        savedGame =
-            JSON.parse(
-                raw
-            );
-    } catch (error) {
+        const raw=localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        saved=JSON.parse(raw);
+    } catch(error) {
         clearSavedGame();
         return null;
     }
 
-    if (
-        !savedGame ||
-        savedGame.version !== 1 ||
-        !isValidGrid(
-            savedGame.solution
-        ) ||
-        !isValidGrid(
-            savedGame.puzzle
-        ) ||
-        !isValidGrid(
-            savedGame.board
-        ) ||
-        !isValidCandidates(
-            savedGame.candidates
-        ) ||
-        ![
-            "easy",
-            "medium",
-            "hard"
-        ].includes(
-            savedGame.difficulty
-        ) ||
-        !Number.isInteger(
-            savedGame.selected
-        ) ||
-        savedGame.selected < 0 ||
-        savedGame.selected > 80 ||
-        !Number.isInteger(
-            savedGame.elapsedSeconds
-        ) ||
-        savedGame.elapsedSeconds < 0 ||
-        typeof savedGame.pencilMode !==
-            "boolean" ||
-        typeof savedGame.autoCandidates !==
-            "boolean"
-    ) {
+    if(!saved||saved.version!==1||
+       !isValidGrid(saved.solution)||!isValidGrid(saved.puzzle)||
+       !isValidGrid(saved.board)||!isValidCandidates(saved.candidates)||
+       !["easy","medium","hard"].includes(saved.difficulty)||
+       !Number.isInteger(saved.selected)||saved.selected<0||saved.selected>80||
+       !Number.isInteger(saved.elapsedSeconds)||saved.elapsedSeconds<0||
+       typeof saved.pencilMode!=="boolean"||typeof saved.autoCandidates!=="boolean") {
         clearSavedGame();
         return null;
     }
-
-    return savedGame;
+    return saved;
 }
-
 
 function updateContinueButton() {
-    const savedGame =
-        readSavedGame();
-
-    continueButton.classList.toggle(
-        "hidden",
-        savedGame === null
-    );
+    continueButton.classList.toggle("hidden",readSavedGame()===null);
 }
-
 
 function continueSavedGame() {
-    const savedGame =
-        readSavedGame();
-
-    if (!savedGame) {
-        updateContinueButton();
-        return;
-    }
+    const saved=readSavedGame();
+    if(!saved) { updateContinueButton();return; }
 
     stopTimer();
+    state.solution=cloneGrid(saved.solution);
+    state.puzzle=cloneGrid(saved.puzzle);
+    state.board=cloneGrid(saved.board);
+    state.candidates=saved.candidates.map(row=>row.map(cell=>cell.slice()));
+    state.selected=saved.selected;
+    state.difficulty=saved.difficulty;
+    state.pencilMode=saved.pencilMode;
+    state.autoCandidates=saved.autoCandidates;
+    state.elapsedSeconds=saved.elapsedSeconds;
+    state.secondsSinceSave=0;
+    state.running=true;
+    state.completed=false;
 
-    state.solution =
-        cloneGrid(
-            savedGame.solution
-        );
-
-    state.puzzle =
-        cloneGrid(
-            savedGame.puzzle
-        );
-
-    state.board =
-        cloneGrid(
-            savedGame.board
-        );
-
-    state.candidates =
-        savedGame.candidates.map(
-            row =>
-                row.map(
-                    cell =>
-                        cell.slice()
-                )
-        );
-
-    state.selected =
-        savedGame.selected;
-
-    state.difficulty =
-        savedGame.difficulty;
-
-    state.pencilMode =
-        savedGame.pencilMode;
-
-    state.autoCandidates =
-        savedGame.autoCandidates;
-
-    state.elapsedSeconds =
-        savedGame.elapsedSeconds;
-
-    state.secondsSinceSave = 0;
-
-    state.running = true;
-    state.completed = false;
-
-    if (
-        state.autoCandidates
-    ) {
-        updateAllCandidates();
-    }
-
-    selectDifficulty(
-        state.difficulty
-    );
-
-    timerElement.textContent =
-        formatTime(
-            state.elapsedSeconds
-        );
-
-    completionOverlay.classList.add(
-        "hidden"
-    );
-
-    startScreen.classList.add(
-        "hidden"
-    );
-
+    if(state.autoCandidates) updateAllCandidates();
+    selectDifficulty(state.difficulty);
+    timerElement.textContent=formatTime(state.elapsedSeconds);
+    completionOverlay.classList.add("hidden");
+    startScreen.classList.add("hidden");
     renderBoard();
     startTimer();
+    requestFullscreen();
 }
 
+/* Sudoku generation */
+function isValidPlacement(grid,row,col,number) {
+    for(let c=0;c<9;c++) if(grid[row][c]===number) return false;
+    for(let r=0;r<9;r++) if(grid[r][col]===number) return false;
 
-/* =========================================================
-   Sudoku generation
-   ========================================================= */
-
-function isValidPlacement(
-    grid,
-    row,
-    col,
-    number
-) {
-    for (
-        let c = 0;
-        c < SIZE;
-        c++
-    ) {
-        if (
-            grid[row][c] ===
-            number
-        ) {
-            return false;
-        }
-    }
-
-    for (
-        let r = 0;
-        r < SIZE;
-        r++
-    ) {
-        if (
-            grid[r][col] ===
-            number
-        ) {
-            return false;
-        }
-    }
-
-    const startRow =
-        Math.floor(
-            row / BOX
-        ) * BOX;
-
-    const startCol =
-        Math.floor(
-            col / BOX
-        ) * BOX;
-
-    for (
-        let r = startRow;
-        r < startRow + BOX;
-        r++
-    ) {
-        for (
-            let c = startCol;
-            c < startCol + BOX;
-            c++
-        ) {
-            if (
-                grid[r][c] ===
-                number
-            ) {
-                return false;
-            }
-        }
-    }
-
+    const sr=Math.floor(row/3)*3;
+    const sc=Math.floor(col/3)*3;
+    for(let r=sr;r<sr+3;r++) for(let c=sc;c<sc+3;c++) if(grid[r][c]===number) return false;
     return true;
 }
 
-
 function solveGrid(grid) {
-    let bestRow = -1;
-    let bestCol = -1;
-    let bestCandidates = null;
+    let bestRow=-1,bestCol=-1,bestCandidates=null;
 
-    for (
-        let row = 0;
-        row < SIZE;
-        row++
-    ) {
-        for (
-            let col = 0;
-            col < SIZE;
-            col++
-        ) {
-            if (
-                grid[row][col] !== 0
-            ) {
-                continue;
-            }
-
-            const candidates = [];
-
-            for (
-                let number = 1;
-                number <= 9;
-                number++
-            ) {
-                if (
-                    isValidPlacement(
-                        grid,
-                        row,
-                        col,
-                        number
-                    )
-                ) {
-                    candidates.push(
-                        number
-                    );
-                }
-            }
-
-            if (
-                candidates.length === 0
-            ) {
-                return false;
-            }
-
-            if (
-                bestCandidates === null ||
-                candidates.length <
-                    bestCandidates.length
-            ) {
-                bestCandidates =
-                    candidates;
-
-                bestRow = row;
-                bestCol = col;
-
-                if (
-                    candidates.length === 1
-                ) {
-                    break;
-                }
+    for(let row=0;row<9;row++) {
+        for(let col=0;col<9;col++) {
+            if(grid[row][col]!==0) continue;
+            const candidates=[];
+            for(let n=1;n<=9;n++) if(isValidPlacement(grid,row,col,n)) candidates.push(n);
+            if(!candidates.length) return false;
+            if(bestCandidates===null||candidates.length<bestCandidates.length) {
+                bestCandidates=candidates;
+                bestRow=row;bestCol=col;
+                if(candidates.length===1) break;
             }
         }
-
-        if (
-            bestCandidates &&
-            bestCandidates.length === 1
-        ) {
-            break;
-        }
+        if(bestCandidates?.length===1) break;
     }
 
-    if (
-        bestCandidates === null
-    ) {
-        return true;
+    if(bestCandidates===null) return true;
+
+    for(const n of shuffle(bestCandidates)) {
+        grid[bestRow][bestCol]=n;
+        if(solveGrid(grid)) return true;
+        grid[bestRow][bestCol]=0;
     }
-
-    for (
-        const number of
-        shuffle(
-            bestCandidates
-        )
-    ) {
-        grid[bestRow][bestCol] =
-            number;
-
-        if (
-            solveGrid(grid)
-        ) {
-            return true;
-        }
-
-        grid[bestRow][bestCol] =
-            0;
-    }
-
     return false;
 }
 
-
 function generateSolution() {
-    const grid =
-        createEmptyGrid();
-
+    const grid=createEmptyGrid();
     solveGrid(grid);
-
     return grid;
 }
 
+function countSolutions(grid,limit=2) {
+    let bestRow=-1,bestCol=-1,bestCandidates=null;
 
-function countSolutions(
-    grid,
-    limit = 2
-) {
-    let bestRow = -1;
-    let bestCol = -1;
-    let bestCandidates = null;
-
-    for (
-        let row = 0;
-        row < SIZE;
-        row++
-    ) {
-        for (
-            let col = 0;
-            col < SIZE;
-            col++
-        ) {
-            if (
-                grid[row][col] !== 0
-            ) {
-                continue;
-            }
-
-            const candidates = [];
-
-            for (
-                let number = 1;
-                number <= 9;
-                number++
-            ) {
-                if (
-                    isValidPlacement(
-                        grid,
-                        row,
-                        col,
-                        number
-                    )
-                ) {
-                    candidates.push(
-                        number
-                    );
-                }
-            }
-
-            if (
-                candidates.length === 0
-            ) {
-                return 0;
-            }
-
-            if (
-                bestCandidates === null ||
-                candidates.length <
-                    bestCandidates.length
-            ) {
-                bestCandidates =
-                    candidates;
-
-                bestRow = row;
-                bestCol = col;
+    for(let row=0;row<9;row++) {
+        for(let col=0;col<9;col++) {
+            if(grid[row][col]!==0) continue;
+            const candidates=[];
+            for(let n=1;n<=9;n++) if(isValidPlacement(grid,row,col,n)) candidates.push(n);
+            if(!candidates.length) return 0;
+            if(bestCandidates===null||candidates.length<bestCandidates.length) {
+                bestCandidates=candidates;bestRow=row;bestCol=col;
             }
         }
     }
 
-    if (
-        bestCandidates === null
-    ) {
-        return 1;
+    if(bestCandidates===null) return 1;
+
+    let count=0;
+    for(const n of bestCandidates) {
+        grid[bestRow][bestCol]=n;
+        count+=countSolutions(grid,limit-count);
+        grid[bestRow][bestCol]=0;
+        if(count>=limit) return count;
     }
-
-    let count = 0;
-
-    for (
-        const number of
-        bestCandidates
-    ) {
-        grid[bestRow][bestCol] =
-            number;
-
-        count +=
-            countSolutions(
-                grid,
-                limit - count
-            );
-
-        grid[bestRow][bestCol] =
-            0;
-
-        if (
-            count >= limit
-        ) {
-            return count;
-        }
-    }
-
     return count;
 }
 
+function generatePuzzle(solution,clueCount) {
+    const puzzle=cloneGrid(solution);
+    const positions=shuffle(Array.from({length:81},(_,i)=>i));
+    let clues=81;
 
-function generatePuzzle(
-    solution,
-    clueCount
-) {
-    const puzzle =
-        cloneGrid(
-            solution
-        );
+    for(const index of positions) {
+        if(clues<=clueCount) break;
+        const [row,col]=indexToRowCol(index);
+        const previous=puzzle[row][col];
+        puzzle[row][col]=0;
 
-    const positions =
-        shuffle(
-            Array.from(
-                {
-                    length: 81
-                },
-                (_, i) => i
-            )
-        );
-
-    let clues = 81;
-
-    for (
-        const index of positions
-    ) {
-        if (
-            clues <= clueCount
-        ) {
-            break;
-        }
-
-        const [row, col] =
-            indexToRowCol(
-                index
-            );
-
-        const previous =
-            puzzle[row][col];
-
-        puzzle[row][col] =
-            0;
-
-        const testGrid =
-            cloneGrid(
-                puzzle
-            );
-
-        if (
-            countSolutions(
-                testGrid,
-                2
-            ) !== 1
-        ) {
-            puzzle[row][col] =
-                previous;
-        } else {
-            clues--;
-        }
+        if(countSolutions(cloneGrid(puzzle),2)!==1) puzzle[row][col]=previous;
+        else clues--;
     }
-
     return puzzle;
 }
 
-
-/* =========================================================
-   Candidates
-   ========================================================= */
-
-function getCandidates(
-    row,
-    col
-) {
-    if (
-        state.board[row][col] !== 0
-    ) {
-        return [];
-    }
-
-    const candidates = [];
-
-    for (
-        let number = 1;
-        number <= 9;
-        number++
-    ) {
-        if (
-            isValidPlacement(
-                state.board,
-                row,
-                col,
-                number
-            )
-        ) {
-            candidates.push(
-                number
-            );
-        }
-    }
-
+/* Candidates */
+function getCandidates(row,col) {
+    if(state.board[row][col]!==0) return [];
+    const candidates=[];
+    for(let n=1;n<=9;n++) if(isValidPlacement(state.board,row,col,n)) candidates.push(n);
     return candidates;
 }
 
-
 function updateAllCandidates() {
-    for (
-        let row = 0;
-        row < SIZE;
-        row++
-    ) {
-        for (
-            let col = 0;
-            col < SIZE;
-            col++
-        ) {
-            if (
-                state.board[row][col] !== 0
-            ) {
-                continue;
-            }
-
-            if (
-                state.autoCandidates
-            ) {
-                state.candidates[row][col] =
-                    getCandidates(
-                        row,
-                        col
-                    );
-            }
-        }
+    if(!state.autoCandidates) return;
+    for(let row=0;row<9;row++) for(let col=0;col<9;col++) {
+        if(state.board[row][col]===0) state.candidates[row][col]=getCandidates(row,col);
     }
 }
 
-
-/* =========================================================
-   Conflict detection
-   ========================================================= */
-
+/* Conflicts */
 function getConflicts() {
-    const conflicts =
-        new Set();
+    const conflicts=new Set();
 
-    for (
-        let row = 0;
-        row < SIZE;
-        row++
-    ) {
-        const seen = {};
-
-        for (
-            let col = 0;
-            col < SIZE;
-            col++
-        ) {
-            const value =
-                state.board[row][col];
-
-            if (!value) {
-                continue;
-            }
-
-            if (
-                seen[value] !==
-                undefined
-            ) {
-                conflicts.add(
-                    rowColToIndex(
-                        row,
-                        col
-                    )
-                );
-
-                conflicts.add(
-                    rowColToIndex(
-                        row,
-                        seen[value]
-                    )
-                );
-            } else {
-                seen[value] =
-                    col;
-            }
+    function scan(indices) {
+        const seen=new Map();
+        for(const index of indices) {
+            const [r,c]=indexToRowCol(index);
+            const value=state.board[r][c];
+            if(!value) continue;
+            if(seen.has(value)) {
+                conflicts.add(index);
+                conflicts.add(seen.get(value));
+            } else seen.set(value,index);
         }
     }
 
-    for (
-        let col = 0;
-        col < SIZE;
-        col++
-    ) {
-        const seen = {};
+    for(let r=0;r<9;r++) scan(Array.from({length:9},(_,c)=>rowColToIndex(r,c)));
+    for(let c=0;c<9;c++) scan(Array.from({length:9},(_,r)=>rowColToIndex(r,c)));
 
-        for (
-            let row = 0;
-            row < SIZE;
-            row++
-        ) {
-            const value =
-                state.board[row][col];
-
-            if (!value) {
-                continue;
-            }
-
-            if (
-                seen[value] !==
-                undefined
-            ) {
-                conflicts.add(
-                    rowColToIndex(
-                        row,
-                        col
-                    )
-                );
-
-                conflicts.add(
-                    rowColToIndex(
-                        seen[value],
-                        col
-                    )
-                );
-            } else {
-                seen[value] =
-                    row;
-            }
-        }
+    for(let br=0;br<3;br++) for(let bc=0;bc<3;bc++) {
+        const indices=[];
+        for(let r=br*3;r<br*3+3;r++) for(let c=bc*3;c<bc*3+3;c++) indices.push(rowColToIndex(r,c));
+        scan(indices);
     }
-
-    for (
-        let boxRow = 0;
-        boxRow < 3;
-        boxRow++
-    ) {
-        for (
-            let boxCol = 0;
-            boxCol < 3;
-            boxCol++
-        ) {
-            const seen = {};
-
-            for (
-                let row =
-                    boxRow * 3;
-                row <
-                    boxRow * 3 + 3;
-                row++
-            ) {
-                for (
-                    let col =
-                        boxCol * 3;
-                    col <
-                        boxCol * 3 + 3;
-                    col++
-                ) {
-                    const value =
-                        state.board[
-                            row
-                        ][col];
-
-                    if (!value) {
-                        continue;
-                    }
-
-                    const index =
-                        rowColToIndex(
-                            row,
-                            col
-                        );
-
-                    if (
-                        seen[value] !==
-                        undefined
-                    ) {
-                        conflicts.add(
-                            index
-                        );
-
-                        conflicts.add(
-                            seen[value]
-                        );
-                    } else {
-                        seen[value] =
-                            index;
-                    }
-                }
-            }
-        }
-    }
-
     return conflicts;
 }
 
-
-/* =========================================================
-   Rendering
-   ========================================================= */
-
+/* Rendering */
 function renderBoard() {
-    boardElement.innerHTML =
-        "";
+    boardElement.innerHTML="";
+    const conflicts=getConflicts();
+    const [selectedRow,selectedCol]=indexToRowCol(state.selected);
 
-    const conflicts =
-        getConflicts();
+    for(let index=0;index<81;index++) {
+        const [row,col]=indexToRowCol(index);
+        const cell=document.createElement("div");
+        cell.className="cell";
+        cell.setAttribute("role","gridcell");
+        cell.setAttribute("aria-label",`Row ${row+1}, column ${col+1}, ${state.board[row][col]||"empty"}`);
 
-    const [
-        selectedRow,
-        selectedCol
-    ] = indexToRowCol(
-        state.selected
-    );
+        const value=state.board[row][col];
+        const isGiven=state.puzzle[row][col]!==0;
 
-    for (
-        let index = 0;
-        index < 81;
-        index++
-    ) {
-        const [row, col] =
-            indexToRowCol(
-                index
-            );
+        if(isGiven) cell.classList.add("given");
+        else if(value!==0) cell.classList.add("user");
 
-        const cell =
-            document.createElement(
-                "div"
-            );
+        const sameRow=row===selectedRow;
+        const sameCol=col===selectedCol;
+        const sameBox=Math.floor(row/3)===Math.floor(selectedRow/3)&&Math.floor(col/3)===Math.floor(selectedCol/3);
 
-        cell.className =
-            "cell";
+        if(!isGiven&&(sameRow||sameCol||sameBox)) cell.classList.add("related");
+        if(index===state.selected) cell.classList.add("selected");
+        if(conflicts.has(index)) cell.classList.add("conflict");
 
-        const value =
-            state.board[row][col];
-
-        const isGiven =
-            state.puzzle[row][col] !==
-            0;
-
-        if (isGiven) {
-            cell.classList.add(
-                "given"
-            );
-        } else if (
-            value !== 0
-        ) {
-            cell.classList.add(
-                "user"
-            );
-        }
-
-        const sameRow =
-            row === selectedRow;
-
-        const sameCol =
-            col === selectedCol;
-
-        const sameBox =
-            Math.floor(
-                row / 3
-            ) ===
-                Math.floor(
-                    selectedRow / 3
-                ) &&
-            Math.floor(
-                col / 3
-            ) ===
-                Math.floor(
-                    selectedCol / 3
-                );
-
-        /*
-         * Only editable cells receive related styling.
-         */
-        if (
-            !isGiven &&
-            (
-                sameRow ||
-                sameCol ||
-                sameBox
-            )
-        ) {
-            cell.classList.add(
-                "related"
-            );
-        }
-
-        /*
-         * All selected cells receive this class.
-         * CSS handles the difference between given
-         * and editable selected cells.
-         */
-        if (
-            index === state.selected
-        ) {
-            cell.classList.add(
-                "selected"
-            );
-        }
-
-        if (
-            conflicts.has(index)
-        ) {
-            cell.classList.add(
-                "conflict"
-            );
-        }
-
-        if (
-            value !== 0
-        ) {
-            const valueElement =
-                document.createElement(
-                    "span"
-                );
-
-            valueElement.className =
-                "value";
-
-            valueElement.textContent =
-                value;
-
-            cell.appendChild(
-                valueElement
-            );
+        if(value!==0) {
+            const span=document.createElement("span");
+            span.className="value";
+            span.textContent=value;
+            cell.appendChild(span);
         } else {
-            const candidatesElement =
-                document.createElement(
-                    "div"
-                );
+            const marks=document.createElement("div");
+            marks.className="candidates";
+            const candidates=state.candidates[row][col]||[];
 
-            candidatesElement.className =
-                "candidates";
-
-            const candidates =
-                state.candidates[
-                    row
-                ][col] || [];
-
-            for (
-                let number = 1;
-                number <= 9;
-                number++
-            ) {
-                const candidate =
-                    document.createElement(
-                        "span"
-                    );
-
-                candidate.className =
-                    "candidate";
-
-                if (
-                    candidates.includes(
-                        number
-                    )
-                ) {
-                    candidate.textContent =
-                        number;
-                }
-
-                candidatesElement.appendChild(
-                    candidate
-                );
+            for(let n=1;n<=9;n++) {
+                const mark=document.createElement("span");
+                mark.className="candidate";
+                if(candidates.includes(n)) mark.textContent=n;
+                marks.appendChild(mark);
             }
-
-            cell.appendChild(
-                candidatesElement
-            );
+            cell.appendChild(marks);
         }
 
-        cell.addEventListener(
-            "click",
-            () => {
-                if (
-                    !state.running ||
-                    state.completed
-                ) {
-                    return;
-                }
+        cell.addEventListener("click",()=>{
+            if(!state.running||state.completed) return;
+            state.selected=index;
+            renderBoard();
+            saveGame();
+        });
 
-                state.selected =
-                    index;
-
-                renderBoard();
-                saveGame();
-            }
-        );
-
-        boardElement.appendChild(
-            cell
-        );
+        boardElement.appendChild(cell);
     }
 
-    difficultyDisplay.textContent =
-        state.difficulty.toUpperCase();
+    difficultyDisplay.textContent=state.difficulty.toUpperCase();
+    pencilButton.textContent=`Pencil: ${state.pencilMode?"ON":"OFF"}`;
+    pencilButton.classList.toggle("active",state.pencilMode);
+    autoCandidateButton.textContent=`Auto Candidates: ${state.autoCandidates?"ON":"OFF"}`;
+    autoCandidateButton.classList.toggle("active",state.autoCandidates);
 
-    pencilButton.textContent =
-        `Pencil: ${
-            state.pencilMode
-                ? "ON"
-                : "OFF"
-        }`;
-
-    pencilButton.classList.toggle(
-        "active",
-        state.pencilMode
-    );
-
-    autoCandidateButton.textContent =
-        `Auto Candidates: ${
-            state.autoCandidates
-                ? "ON"
-                : "OFF"
-        }`;
-
-    autoCandidateButton.classList.toggle(
-        "active",
-        state.autoCandidates
-    );
+    numberPad.querySelector('[data-action="pencil"]').classList.toggle("active",state.pencilMode);
 }
 
-
-/* =========================================================
-   Input
-   ========================================================= */
-
+/* Input */
 function placeNumber(number) {
-    if (
-        !state.running ||
-        state.completed
-    ) {
-        return;
-    }
+    if(!state.running||state.completed) return;
+    const [row,col]=indexToRowCol(state.selected);
+    if(state.puzzle[row][col]!==0) return;
 
-    const [row, col] =
-        indexToRowCol(
-            state.selected
-        );
-
-    if (
-        state.puzzle[row][col] !==
-        0
-    ) {
-        return;
-    }
-
-    /*
-     * Normal number entry.
-     */
-    if (
-        !state.pencilMode
-    ) {
-        state.board[row][col] =
-            number;
-
-        state.candidates[row][col] =
-            [];
-
-        if (
-            state.autoCandidates
-        ) {
-            updateAllCandidates();
-        }
-
+    if(!state.pencilMode) {
+        state.board[row][col]=number;
+        state.candidates[row][col]=[];
+        if(state.autoCandidates) updateAllCandidates();
         renderBoard();
         saveGame();
-
         checkCompletion();
-
         return;
     }
 
-    /*
-     * Auto candidates controls its own
-     * candidate list.
-     */
-    if (
-        state.autoCandidates
-    ) {
-        return;
-    }
+    if(state.autoCandidates) return;
 
-    const current =
-        state.candidates[row][col] ||
-        [];
-
-    if (
-        current.includes(number)
-    ) {
-        state.candidates[row][col] =
-            current.filter(
-                n => n !== number
-            );
-    } else {
-        state.candidates[row][col] =
-            [
-                ...current,
-                number
-            ].sort();
-    }
+    const current=state.candidates[row][col]||[];
+    state.candidates[row][col]=current.includes(number)
+        ? current.filter(n=>n!==number)
+        : [...current,number].sort();
 
     renderBoard();
     saveGame();
 }
-
 
 function clearSelectedCell() {
-    if (
-        !state.running ||
-        state.completed
-    ) {
-        return;
-    }
+    if(!state.running||state.completed) return;
+    const [row,col]=indexToRowCol(state.selected);
+    if(state.puzzle[row][col]!==0) return;
 
-    const [row, col] =
-        indexToRowCol(
-            state.selected
-        );
-
-    if (
-        state.puzzle[row][col] !==
-        0
-    ) {
-        return;
-    }
-
-    state.board[row][col] =
-        0;
-
-    if (
-        state.autoCandidates
-    ) {
-        updateAllCandidates();
-    }
-
+    state.board[row][col]=0;
+    if(state.autoCandidates) updateAllCandidates();
     renderBoard();
     saveGame();
 }
-
 
 function togglePencilMode() {
-    if (
-        !state.running ||
-        state.completed
-    ) {
-        return;
-    }
-
-    state.pencilMode =
-        !state.pencilMode;
-
+    if(!state.running||state.completed) return;
+    state.pencilMode=!state.pencilMode;
     renderBoard();
     saveGame();
 }
-
 
 function toggleAutoCandidates() {
-    if (
-        !state.running ||
-        state.completed
-    ) {
-        return;
-    }
-
-    state.autoCandidates =
-        !state.autoCandidates;
-
-    if (
-        state.autoCandidates
-    ) {
-        updateAllCandidates();
-    }
-
+    if(!state.running||state.completed) return;
+    state.autoCandidates=!state.autoCandidates;
+    if(state.autoCandidates) updateAllCandidates();
     renderBoard();
     saveGame();
 }
 
-
-/* =========================================================
-   Reset
-   ========================================================= */
-
+/* Reset */
 function resetGame() {
-    if (
-        state.puzzle.length !== SIZE ||
-        (
-            !state.running &&
-            !state.completed
-        )
-    ) {
-        return;
-    }
-
+    if(state.puzzle.length!==9||(!state.running&&!state.completed)) return;
     stopTimer();
-
-    state.board =
-        cloneGrid(
-            state.puzzle
-        );
-
-    state.candidates =
-        createEmptyCandidates();
-
-    state.selected = 0;
-
-    state.pencilMode = false;
-    state.autoCandidates = false;
-
-    state.running = true;
-    state.completed = false;
-
-    state.elapsedSeconds = 0;
-    state.secondsSinceSave = 0;
-
-    timerElement.textContent =
-        "00:00";
-
-    completionOverlay.classList.add(
-        "hidden"
-    );
-
-    startScreen.classList.add(
-        "hidden"
-    );
-
+    state.board=cloneGrid(state.puzzle);
+    state.candidates=createEmptyCandidates();
+    state.selected=0;
+    state.pencilMode=false;
+    state.autoCandidates=false;
+    state.running=true;
+    state.completed=false;
+    state.elapsedSeconds=0;
+    state.secondsSinceSave=0;
+    timerElement.textContent="00:00";
+    completionOverlay.classList.add("hidden");
+    startScreen.classList.add("hidden");
     renderBoard();
     saveGame();
     startTimer();
 }
 
+/* Navigation */
+function moveSelection(direction) {
+    if(!state.running||state.completed) return;
+    let [row,col]=indexToRowCol(state.selected);
 
-/* =========================================================
-   Keyboard navigation
-   ========================================================= */
+    if(direction==="up") row=(row+8)%9;
+    if(direction==="down") row=(row+1)%9;
+    if(direction==="left") col=(col+8)%9;
+    if(direction==="right") col=(col+1)%9;
 
-function moveSelection(
-    direction
-) {
-    if (
-        !state.running ||
-        state.completed
-    ) {
-        return;
-    }
-
-    let [row, col] =
-        indexToRowCol(
-            state.selected
-        );
-
-    switch (direction) {
-        case "up":
-            row =
-                (row + 8) % 9;
-            break;
-
-        case "down":
-            row =
-                (row + 1) % 9;
-            break;
-
-        case "left":
-            col =
-                (col + 8) % 9;
-            break;
-
-        case "right":
-            col =
-                (col + 1) % 9;
-            break;
-    }
-
-    state.selected =
-        rowColToIndex(
-            row,
-            col
-        );
-
+    state.selected=rowColToIndex(row,col);
     renderBoard();
     saveGame();
 }
 
+document.addEventListener("keydown",event=>{
+    if(!state.running||state.completed) return;
 
-document.addEventListener(
-    "keydown",
-    event => {
-        if (
-            !state.running ||
-            state.completed
-        ) {
-            return;
-        }
-
-        if (
-            event.key === " " ||
-            event.code === "Space"
-        ) {
-            event.preventDefault();
-
-            togglePencilMode();
-
-            return;
-        }
-
-        switch (event.key) {
-            case "ArrowUp":
-                event.preventDefault();
-                moveSelection("up");
-                return;
-
-            case "ArrowDown":
-                event.preventDefault();
-                moveSelection("down");
-                return;
-
-            case "ArrowLeft":
-                event.preventDefault();
-                moveSelection("left");
-                return;
-
-            case "ArrowRight":
-                event.preventDefault();
-                moveSelection("right");
-                return;
-
-            case "Backspace":
-            case "Delete":
-            case "0":
-                event.preventDefault();
-                clearSelectedCell();
-                return;
-        }
-
-        if (
-            event.key >= "1" &&
-            event.key <= "9"
-        ) {
-            event.preventDefault();
-
-            placeNumber(
-                Number(
-                    event.key
-                )
-            );
-        }
-    }
-);
-
-
-/* =========================================================
-   Completion
-   ========================================================= */
-
-function checkCompletion() {
-    const conflicts =
-        getConflicts();
-
-    if (
-        conflicts.size > 0
-    ) {
+    if(event.key===" "||event.code==="Space") {
+        event.preventDefault();
+        togglePencilMode();
         return;
     }
 
-    for (
-        let row = 0;
-        row < SIZE;
-        row++
-    ) {
-        for (
-            let col = 0;
-            col < SIZE;
-            col++
-        ) {
-            if (
-                state.board[row][col] ===
-                0
-            ) {
-                return;
-            }
-
-            if (
-                state.board[row][col] !==
-                state.solution[row][col]
-            ) {
-                return;
-            }
-        }
+    switch(event.key) {
+        case "ArrowUp":event.preventDefault();moveSelection("up");return;
+        case "ArrowDown":event.preventDefault();moveSelection("down");return;
+        case "ArrowLeft":event.preventDefault();moveSelection("left");return;
+        case "ArrowRight":event.preventDefault();moveSelection("right");return;
+        case "Backspace":
+        case "Delete":
+        case "0":event.preventDefault();clearSelectedCell();return;
     }
 
+    if(event.key>="1"&&event.key<="9") {
+        event.preventDefault();
+        placeNumber(Number(event.key));
+    }
+});
+
+/* Virtual number pad */
+numberPad.addEventListener("click",event=>{
+    const button=event.target.closest("button");
+    if(!button||!state.running||state.completed) return;
+
+    if(button.dataset.number) {
+        placeNumber(Number(button.dataset.number));
+        return;
+    }
+
+    if(button.dataset.action==="erase") clearSelectedCell();
+    if(button.dataset.action==="pencil") togglePencilMode();
+    if(button.dataset.action==="move") moveSelection("right");
+});
+
+/* Fullscreen */
+function requestFullscreen() {
+    const root=document.documentElement;
+
+    if(document.fullscreenElement) return;
+
+    if(root.requestFullscreen) {
+        root.requestFullscreen({navigationUI:"hide"}).catch(()=>{});
+    }
+    /*
+     * iOS Safari does not expose standard requestFullscreen
+     * for ordinary webpages. The viewport still uses the
+     * available screen area and safe-area insets.
+     */
+}
+
+/* Completion */
+function checkCompletion() {
+    if(getConflicts().size>0) return;
+
+    for(let row=0;row<9;row++) for(let col=0;col<9;col++) {
+        if(state.board[row][col]===0||state.board[row][col]!==state.solution[row][col]) return;
+    }
     completeGame();
 }
 
-
 function completeGame() {
-    if (
-        state.completed
-    ) {
-        return;
-    }
-
-    state.completed = true;
-    state.running = false;
-
+    if(state.completed) return;
+    state.completed=true;
+    state.running=false;
     stopTimer();
-
-    /*
-     * Completed games cannot be continued.
-     */
     clearSavedGame();
-
-    completionTime.textContent =
-        formatTime(
-            state.elapsedSeconds
-        );
-
-    completionOverlay.classList.remove(
-        "hidden"
-    );
-
+    completionTime.textContent=formatTime(state.elapsedSeconds);
+    completionOverlay.classList.remove("hidden");
     renderBoard();
     updateContinueButton();
 }
 
-
-/* =========================================================
-   Timer
-   ========================================================= */
-
+/* Timer */
 function startTimer() {
     stopTimer();
-
-    state.timerInterval =
-        setInterval(
-            () => {
-                if (
-                    state.running &&
-                    !state.completed
-                ) {
-                    state.elapsedSeconds++;
-                    state.secondsSinceSave++;
-
-                    timerElement.textContent =
-                        formatTime(
-                            state.elapsedSeconds
-                        );
-
-                    if (
-                        state.secondsSinceSave >=
-                        SAVE_INTERVAL_SECONDS
-                    ) {
-                        saveGame();
-                    }
-                }
-            },
-            1000
-        );
+    state.timerInterval=setInterval(()=>{
+        if(state.running&&!state.completed) {
+            state.elapsedSeconds++;
+            state.secondsSinceSave++;
+            timerElement.textContent=formatTime(state.elapsedSeconds);
+            if(state.secondsSinceSave>=SAVE_INTERVAL_SECONDS) saveGame();
+        }
+    },1000);
 }
-
 
 function stopTimer() {
-    if (
-        state.timerInterval !==
-        null
-    ) {
-        clearInterval(
-            state.timerInterval
-        );
-
-        state.timerInterval =
-            null;
+    if(state.timerInterval!==null) {
+        clearInterval(state.timerInterval);
+        state.timerInterval=null;
     }
 }
 
-
-/* =========================================================
-   Start screen / New Game
-   ========================================================= */
-
+/* Start / New Game */
 function showStartScreen() {
     stopTimer();
-
-    state.running = false;
-    state.completed = false;
-
-    completionOverlay.classList.add(
-        "hidden"
-    );
-
-    startScreen.classList.remove(
-        "hidden"
-    );
-
+    state.running=false;
+    state.completed=false;
+    completionOverlay.classList.add("hidden");
+    startScreen.classList.remove("hidden");
     updateContinueButton();
-
-    /*
-     * Refresh the deployment information immediately.
-     */
-    checkDeploymentStatus();
 }
-
 
 function startGame() {
-    const config =
-        difficultyConfig[
-            state.difficulty
-        ];
-
+    const config=difficultyConfig[state.difficulty];
     stopTimer();
 
-    state.solution =
-        generateSolution();
+    state.solution=generateSolution();
+    state.puzzle=generatePuzzle(state.solution,config.clues);
+    state.board=cloneGrid(state.puzzle);
+    state.candidates=createEmptyCandidates();
+    state.selected=0;
+    state.pencilMode=false;
+    state.autoCandidates=false;
+    state.running=true;
+    state.completed=false;
+    state.elapsedSeconds=0;
+    state.secondsSinceSave=0;
 
-    state.puzzle =
-        generatePuzzle(
-            state.solution,
-            config.clues
-        );
-
-    state.board =
-        cloneGrid(
-            state.puzzle
-        );
-
-    state.candidates =
-        createEmptyCandidates();
-
-    state.selected = 0;
-
-    state.pencilMode = false;
-    state.autoCandidates = false;
-
-    state.running = true;
-    state.completed = false;
-
-    state.elapsedSeconds = 0;
-    state.secondsSinceSave = 0;
-
-    timerElement.textContent =
-        "00:00";
-
-    completionOverlay.classList.add(
-        "hidden"
-    );
-
-    startScreen.classList.add(
-        "hidden"
-    );
-
+    timerElement.textContent="00:00";
+    completionOverlay.classList.add("hidden");
+    startScreen.classList.add("hidden");
     renderBoard();
-
-    /*
-     * Immediately save the new game so it can
-     * be continued after closing the page.
-     */
     saveGame();
-
     startTimer();
+    requestFullscreen();
 }
 
-
-/* =========================================================
-   Difficulty
-   ========================================================= */
-
-function selectDifficulty(
-    difficulty
-) {
-    state.difficulty =
-        difficulty;
-
-    difficultyButtons.forEach(
-        button => {
-            button.classList.toggle(
-                "active",
-                button.dataset.difficulty ===
-                    difficulty
-            );
-        }
-    );
+/* Difficulty */
+function selectDifficulty(difficulty) {
+    state.difficulty=difficulty;
+    difficultyButtons.forEach(button=>{
+        button.classList.toggle("active",button.dataset.difficulty===difficulty);
+    });
 }
 
+/* Events */
+difficultyButtons.forEach(button=>{
+    button.addEventListener("click",()=>selectDifficulty(button.dataset.difficulty));
+});
 
-/* =========================================================
-   UI events
-   ========================================================= */
+startButton.addEventListener("click",startGame);
+continueButton.addEventListener("click",continueSavedGame);
+pencilButton.addEventListener("click",togglePencilMode);
+autoCandidateButton.addEventListener("click",toggleAutoCandidates);
+resetButton.addEventListener("click",resetGame);
+newGameControl.addEventListener("click",showStartScreen);
+newGameButton.addEventListener("click",showStartScreen);
 
-difficultyButtons.forEach(
-    button => {
-        button.addEventListener(
-            "click",
-            () => {
-                selectDifficulty(
-                    button.dataset.difficulty
-                );
-            }
-        );
-    }
-);
+closeCompletionButton.addEventListener("click",()=>{
+    completionOverlay.classList.add("hidden");
+});
 
+window.addEventListener("pagehide",saveGame);
 
-startButton.addEventListener(
-    "click",
-    startGame
-);
+document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="hidden") saveGame();
+});
 
+/* Startup */
+state.solution=createEmptyGrid();
+state.puzzle=createEmptyGrid();
+state.board=createEmptyGrid();
+state.candidates=createEmptyCandidates();
 
-continueButton.addEventListener(
-    "click",
-    continueSavedGame
-);
-
-
-pencilButton.addEventListener(
-    "click",
-    togglePencilMode
-);
-
-
-autoCandidateButton.addEventListener(
-    "click",
-    toggleAutoCandidates
-);
-
-
-resetButton.addEventListener(
-    "click",
-    resetGame
-);
-
-
-newGameControl.addEventListener(
-    "click",
-    showStartScreen
-);
-
-
-newGameButton.addEventListener(
-    "click",
-    showStartScreen
-);
-
-
-closeCompletionButton.addEventListener(
-    "click",
-    () => {
-        completionOverlay.classList.add(
-            "hidden"
-        );
-    }
-);
-
-
-/* =========================================================
-   Save on page close/background
-   ========================================================= */
-
-window.addEventListener(
-    "pagehide",
-    () => {
-        saveGame();
-    }
-);
-
-
-document.addEventListener(
-    "visibilitychange",
-    () => {
-        if (
-            document.visibilityState ===
-            "hidden"
-        ) {
-            saveGame();
-        }
-    }
-);
-
-
-/* =========================================================
-   Initial startup
-   ========================================================= */
-
-state.solution =
-    createEmptyGrid();
-
-state.puzzle =
-    createEmptyGrid();
-
-state.board =
-    createEmptyGrid();
-
-state.candidates =
-    createEmptyCandidates();
-
-selectDifficulty(
-    "easy"
-);
-
-timerElement.textContent =
-    "00:00";
-
-difficultyDisplay.textContent =
-    "EASY";
-
-state.running = false;
-state.completed = false;
+selectDifficulty("easy");
+timerElement.textContent="00:00";
+difficultyDisplay.textContent="EASY";
+state.running=false;
+state.completed=false;
 
 renderBoard();
-
-/*
- * Always start on the start screen.
- */
-startScreen.classList.remove(
-    "hidden"
-);
-
-/*
- * Show Continue only when a saved game exists.
- */
+startScreen.classList.remove("hidden");
 updateContinueButton();
-
-/*
- * Check GitHub Pages deployment once when the
- * page is loaded. There is intentionally no
- * recurring polling.
- */
 checkDeploymentStatus();
-
-
 </script>
-
 </body>
 </html>
